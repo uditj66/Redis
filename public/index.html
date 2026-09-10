@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Redis Learning Platform – Project-Based Mastery</title>
+  <meta name="description" content="Learn Redis through hands-on, interactive projects. Master Strings, Caching, Lists, Hashes, Sets, Sorted Sets, Pub/Sub, and Rate Limiting." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════ SIDEBAR NAVIGATION -->
+<aside id="sidebar">
+  <div class="logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="15" fill="url(#lg)"/><path d="M8 20l8-8 4 4 4-8" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><defs><linearGradient id="lg" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse"><stop stop-color="#EF4444"/><stop offset="1" stop-color="#F59E0B"/></linearGradient></defs></svg>
+    </div>
+    <div>
+      <div class="logo-title">RedisLearn HQ</div>
+      <div class="logo-sub">Interactive Mastery</div>
+    </div>
+  </div>
+
+  <div class="redis-status" id="redisStatus">
+    <div class="status-dot" id="statusDot"></div>
+    <span id="statusText">Connecting...</span>
+  </div>
+
+  <nav class="nav-list">
+    <div class="nav-section-label">Learning Modules</div>
+    <button class="nav-item active" data-module="strings" id="nav-strings">
+      <span class="nav-icon">🔑</span>
+      <div class="nav-content">
+        <span class="nav-title">Strings &amp; Keys</span>
+        <span class="nav-cmd">SET · GET · TTL · EXPIRE</span>
+      </div>
+      <span class="nav-badge">1</span>
+    </button>
+    <button class="nav-item" data-module="cache" id="nav-cache">
+      <span class="nav-icon">⚡</span>
+      <div class="nav-content">
+        <span class="nav-title">Caching</span>
+        <span class="nav-cmd">Cache-Aside Pattern</span>
+      </div>
+      <span class="nav-badge">2</span>
+    </button>
+    <button class="nav-item" data-module="lists" id="nav-lists">
+      <span class="nav-icon">📋</span>
+      <div class="nav-content">
+        <span class="nav-title">Lists</span>
+        <span class="nav-cmd">LPUSH · RPUSH · LRANGE</span>
+      </div>
+      <span class="nav-badge">3</span>
+    </button>
+    <button class="nav-item" data-module="hashes" id="nav-hashes">
+      <span class="nav-icon">🗂️</span>
+      <div class="nav-content">
+        <span class="nav-title">Hashes</span>
+        <span class="nav-cmd">HSET · HGET · HINCRBY</span>
+      </div>
+      <span class="nav-badge">4</span>
+    </button>
+    <button class="nav-item" data-module="sets" id="nav-sets">
+      <span class="nav-icon">🔵</span>
+      <div class="nav-content">
+        <span class="nav-title">Sets</span>
+        <span class="nav-cmd">SADD · SINTER · SUNION</span>
+      </div>
+      <span class="nav-badge">5</span>
+    </button>
+    <button class="nav-item" data-module="sorted" id="nav-sorted">
+      <span class="nav-icon">🏆</span>
+      <div class="nav-content">
+        <span class="nav-title">Sorted Sets</span>
+        <span class="nav-cmd">ZADD · ZREVRANGE · ZRANK</span>
+      </div>
+      <span class="nav-badge">6</span>
+    </button>
+    <button class="nav-item" data-module="pubsub" id="nav-pubsub">
+      <span class="nav-icon">📡</span>
+      <div class="nav-content">
+        <span class="nav-title">Pub/Sub</span>
+        <span class="nav-cmd">PUBLISH · SUBSCRIBE</span>
+      </div>
+      <span class="nav-badge">7</span>
+    </button>
+    <button class="nav-item" data-module="ratelimit" id="nav-ratelimit">
+      <span class="nav-icon">🚦</span>
+      <div class="nav-content">
+        <span class="nav-title">Rate Limiting</span>
+        <span class="nav-cmd">INCR · EXPIRE Pattern</span>
+      </div>
+      <span class="nav-badge">8</span>
+    </button>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="cheat-sheet-btn" onclick="toggleCheatSheet()">📖 Quick Reference</div>
+  </div>
+</aside>
+
+<!-- ═══════════════════════════════════════════════════════ MAIN CONTENT -->
+<main id="main">
+
+  <!-- Top App Header & Quick Search Bar -->
+  <div class="top-bar">
+    <div class="top-bar-left">
+      <button class="cmd-search-trigger" onclick="toggleCheatSheet()">
+        <span>🔍 Search commands &amp; modules...</span>
+        <span class="kbd-shortcut">Ctrl + K</span>
+      </button>
+    </div>
+    <div class="metric-pills">
+      <div class="metric-pill">
+        <span>Engine:</span> <strong>Redis 7.0 (In-Memory)</strong>
+      </div>
+      <div class="metric-pill">
+        <span>Avg Latency:</span> <strong style="color:var(--accent-emerald)">&lt; 1 ms</strong>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Module 1: STRINGS ── -->
+  <section class="module" id="module-strings">
+    <div class="module-header">
+      <div class="module-badge">Module 1 of 8</div>
+      <h1>🔑 Strings &amp; Keys — The Foundation of Redis</h1>
+      <p class="module-desc">Redis is, at its core, an in-memory <strong>key-value store</strong>. Every value lives under a <em>unique key</em>. The simplest (and most common) value type is a <strong>String</strong>.</p>
+    </div>
+
+    <div class="concept-box">
+      <h3>💡 Core Concepts</h3>
+      <div class="concept-grid">
+        <div class="concept-card">
+          <code>SET key value</code>
+          <p>Store any string value under a key. Overwrites if key exists.</p>
+        </div>
+        <div class="concept-card">
+          <code>GET key</code>
+          <p>Retrieve a value. Returns <em>nil</em> if key doesn't exist or expired.</p>
+        </div>
+        <div class="concept-card">
+          <code>EXPIRE key seconds</code>
+          <p>Set a time-to-live. Key auto-deletes after N seconds.</p>
+        </div>
+        <div class="concept-card">
+          <code>TTL key</code>
+          <p>Returns remaining time. -1 = no expiry, -2 = key gone.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="lab-grid">
+      <!-- SET -->
+      <div class="lab-card" id="lab-set">
+        <h3>SET a Key</h3>
+        <div class="form-row">
+          <input type="text" id="setKey" placeholder="Key (e.g. user:name)" />
+          <input type="text" id="setValue" placeholder="Value" />
+          <input type="number" id="setTtl" placeholder="TTL (sec, optional)" min="1" />
+          <button class="btn btn-primary" onclick="doSet()">SET</button>
+        </div>
+      </div>
+
+      <!-- GET -->
+      <div class="lab-card" id="lab-get">
+        <h3>GET a Key</h3>
+        <div class="form-row">
+          <input type="text" id="getKey" placeholder="Key to retrieve" />
+          <button class="btn btn-primary" onclick="doGet()">GET</button>
+        </div>
+      </div>
+
+      <!-- TTL -->
+      <div class="lab-card" id="lab-ttl">
+        <h3>Check TTL</h3>
+        <div class="form-row">
+          <input type="text" id="ttlKey" placeholder="Key to check TTL" />
+          <button class="btn btn-secondary" onclick="doTtl()">TTL</button>
+        </div>
+      </div>
+
+      <!-- DEL -->
+      <div class="lab-card" id="lab-del">
+        <h3>DELETE a Key</h3>
+        <div class="form-row">
+          <input type="text" id="delKey" placeholder="Key to delete" />
+          <button class="btn btn-danger" onclick="doDel()">DEL</button>
+        </div>
+      </div>
+
+      <!-- KEYS browser -->
+      <div class="lab-card full-width" id="lab-keys">
+        <h3>Browse All Keys <span class="badge-warn">⚠️ Use SCAN in production</span></h3>
+        <div class="form-row">
+          <input type="text" id="keysPattern" value="*" placeholder="Pattern (e.g. user:*)" />
+          <button class="btn btn-secondary" onclick="doKeys()">KEYS</button>
+        </div>
+        <div class="keys-grid" id="keysGrid"></div>
+      </div>
+    </div>
+
+    <div class="response-panel" id="resp-strings">
+      <div class="resp-header">
+        <span class="resp-label">Redis Console Response</span>
+        <code id="resp-strings-cmd" class="cmd-display"></code>
+      </div>
+      <pre id="resp-strings-body">Run a command above to see the result...</pre>
+      <div class="explanation-box" id="resp-strings-explain"></div>
+    </div>
+  </section>
+
+  <!-- ── Module 2: CACHE ── -->
+  <section class="module hidden" id="module-cache">
+    <div class="module-header">
+      <div class="module-badge">Module 2 of 8</div>
+      <h1>⚡ Caching — The Cache-Aside Pattern</h1>
+      <p class="module-desc">Caching is Redis's most famous use-case. Instead of hitting a slow database or external API every time, store the result in Redis for subsequent requests — serving data in <strong>microseconds</strong> instead of seconds.</p>
+    </div>
+
+    <div class="concept-box">
+      <h3>💡 Cache-Aside Pattern (Lazy Loading)</h3>
+      <div class="flow-diagram">
+        <div class="flow-step">
+          <div class="flow-num">1</div>
+          <div>Request arrives</div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step">
+          <div class="flow-num">2</div>
+          <div>Check Redis cache</div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step hit">
+          <div class="flow-num">3a</div>
+          <div>🟢 HIT → Return instantly</div>
+        </div>
+        <div class="flow-arrow">|</div>
+        <div class="flow-step miss">
+          <div class="flow-num">3b</div>
+          <div>🔴 MISS → Fetch slow source → Store → Return</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="weather-demo">
+      <h3>🌤 Weather Cache Demo</h3>
+      <p class="demo-desc" style="margin-bottom:14px;color:var(--text-muted);font-size:0.85rem;">Click a city. <strong>First click</strong> = cache MISS (waits ~1.5s for "API"). <strong>Second click</strong> = cache HIT (instant!). Watch the source change.</p>
+      <div class="city-grid">
+        <button class="city-btn" onclick="fetchWeather('london')" id="city-london">🇬🇧 London</button>
+        <button class="city-btn" onclick="fetchWeather('tokyo')" id="city-tokyo">🇯🇵 Tokyo</button>
+        <button class="city-btn" onclick="fetchWeather('newyork')" id="city-newyork">🗽 New York</button>
+        <button class="city-btn" onclick="fetchWeather('mumbai')" id="city-mumbai">🇮🇳 Mumbai</button>
+        <button class="city-btn" onclick="fetchWeather('sydney')" id="city-sydney">🦘 Sydney</button>
+        <button class="city-btn" onclick="fetchWeather('paris')" id="city-paris">🗼 Paris</button>
+        <button class="city-btn" onclick="fetchWeather('dubai')" id="city-dubai">🏙️ Dubai</button>
+        <button class="city-btn" onclick="fetchWeather('singapore')" id="city-singapore">🦁 Singapore</button>
+      </div>
+
+      <div class="cache-result hidden" id="cacheResult">
+        <div class="cache-source" id="cacheSource"></div>
+        <div class="weather-card" id="weatherCard"></div>
+        <div class="cache-stats-row">
+          <div class="stat-pill" id="cacheLatency"></div>
+          <div class="stat-pill" id="cacheTtl"></div>
+        </div>
+        <button class="btn btn-danger btn-sm" id="invalidateBtn" onclick="invalidateCache()">🗑 Invalidate Cache</button>
+      </div>
+
+      <div class="cache-inventory" id="cacheInventory"></div>
+    </div>
+
+    <div class="response-panel" id="resp-cache">
+      <div class="resp-header">
+        <span class="resp-label">Redis Console Response</span>
+        <code id="resp-cache-cmd" class="cmd-display"></code>
+      </div>
+      <pre id="resp-cache-body">Click a city above...</pre>
+      <div class="explanation-box" id="resp-cache-explain"></div>
+    </div>
+  </section>
+
+  <!-- ── Module 3: LISTS ── -->
+  <section class="module hidden" id="module-lists">
+    <div class="module-header">
+      <div class="module-badge">Module 3 of 8</div>
+      <h1>📋 Lists — Queues, Stacks &amp; Feeds</h1>
+      <p class="module-desc">Redis Lists are <strong>ordered linked lists</strong> of strings. Add to either end in O(1). Perfect for activity feeds (newest first), message queues (FIFO), and task processing.</p>
+    </div>
+
+    <div class="concept-box">
+      <h3>💡 List Structure</h3>
+      <div class="list-visual">
+        <div class="list-end">HEAD (index 0)</div>
+        <div class="list-arrow">← LPUSH adds here</div>
+        <div class="list-items" id="listVisual">
+          <div class="list-item-vis">item1</div>
+          <div class="list-item-vis">item2</div>
+          <div class="list-item-vis">item3</div>
+        </div>
+        <div class="list-arrow">RPUSH adds here →</div>
+        <div class="list-end">TAIL (index -1)</div>
+      </div>
+    </div>
+
+    <div class="lab-grid">
+      <!-- Activity Feed -->
+      <div class="lab-card" id="lab-feed">
+        <h3>📢 Activity Feed (LPUSH)</h3>
+        <p class="card-desc">Newest items at the front — classic social media feed pattern.</p>
+        <div class="form-row">
+          <input type="text" id="feedUser" placeholder="Username" value="Alice" />
+          <input type="text" id="feedAction" placeholder="Activity" value="posted a photo" />
+          <button class="btn btn-primary" onclick="pushFeed()">LPUSH</button>
+        </div>
+        <div class="quick-actions">
+          <button class="chip" onclick="setFeedUser('Bob')">Bob</button>
+          <button class="chip" onclick="setFeedUser('Charlie')">Charlie</button>
+          <button class="chip" onclick="randomFeedAction()">🎲 Random</button>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="loadFeed()">LRANGE (load feed)</button>
+        <div class="feed-list" id="feedList" style="margin-top:12px;"></div>
+      </div>
+
+      <!-- Task Queue -->
+      <div class="lab-card" id="lab-queue">
+        <h3>📦 Task Queue (FIFO)</h3>
+        <p class="card-desc">RPUSH to enqueue. LPOP to dequeue (first in, first out).</p>
+        <div class="form-row">
+          <input type="text" id="queueTask" placeholder="Task name" value="Send email" />
+          <button class="btn btn-primary" onclick="enqueueTask()">RPUSH</button>
+          <button class="btn btn-secondary" onclick="dequeueTask()">LPOP</button>
+        </div>
+        <div class="queue-visual" id="queueVisual">
+          <div class="queue-empty" style="color:var(--text-dim);font-size:0.82rem;">Queue is empty</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="response-panel" id="resp-lists">
+      <div class="resp-header">
+        <span class="resp-label">Redis Console Response</span>
+        <code id="resp-lists-cmd" class="cmd-display"></code>
+      </div>
+      <pre id="resp-lists-body">Add items to the feed or queue above...</pre>
+      <div class="explanation-box" id="resp-lists-explain"></div>
+    </div>
+  </section>
+
+  <!-- ── Module 4: HASHES ── -->
+  <section class="module hidden" id="module-hashes">
+    <div class="module-header">
+      <div class="module-badge">Module 4 of 8</div>
+      <h1>🗂️ Hashes — Objects in Redis</h1>
+      <p class="module-desc">A Hash stores a <strong>collection of field-value pairs</strong> under one key — like a JavaScript object or a database row. Store user profiles, product data, or any structured data efficiently.</p>
+    </div>
+
+    <div class="concept-box">
+      <h3>💡 Hash Structure</h3>
+      <div class="hash-visual" style="padding:16px;background:var(--bg-input);border-radius:var(--radius-md);border:1px solid var(--border-subtle);">
+        <div class="hash-key-label" style="font-family:var(--font-mono);margin-bottom:10px;">Key: <code style="color:var(--redis-red);">user:1001</code></div>
+        <div class="hash-fields" style="display:flex;gap:12px;flex-wrap:wrap;">
+          <div class="hash-field" style="background:var(--bg-panel);padding:6px 12px;border-radius:var(--radius-sm);font-family:var(--font-mono);font-size:0.8rem;"><span style="color:var(--text-dim);">name</span> → <span style="color:var(--accent-emerald);">"Alice"</span></div>
+          <div class="hash-field" style="background:var(--bg-panel);padding:6px 12px;border-radius:var(--radius-sm);font-family:var(--font-mono);font-size:0.8rem;"><span style="color:var(--text-dim);">email</span> → <span style="color:var(--accent-emerald);">"alice@example.com"</span></div>
+          <div class="hash-field" style="background:var(--bg-panel);padding:6px 12px;border-radius:var(--radius-sm);font-family:var(--font-mono);font-size:0.8rem;"><span style="color:var(--text-dim);">age</span> → <span style="color:var(--accent-emerald);">"28"</span></div>
+          <div class="hash-field" style="background:var(--bg-panel);padding:6px 12px;border-radius:var(--radius-sm);font-family:var(--font-mono);font-size:0.8rem;"><span style="color:var(--text-dim);">points</span> → <span style="color:var(--accent-emerald);">"150"</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="lab-grid">
+      <div class="lab-card" id="lab-create-user">
+        <h3>Create User Profile (HSET)</h3>
+        <div class="form-col">
+          <div class="form-row">
+            <input type="text" id="userId" placeholder="User ID (e.g. 1001)" />
+            <input type="text" id="userName" placeholder="Name" />
+          </div>
+          <div class="form-row">
+            <input type="email" id="userEmail" placeholder="Email" />
+            <input type="number" id="userAge" placeholder="Age" />
+          </div>
+          <input type="text" id="userBio" placeholder="Bio (optional)" style="width:100%" />
+          <button class="btn btn-primary" onclick="createUser()">HSET</button>
+        </div>
+      </div>
+
+      <div class="lab-card" id="lab-get-user">
+        <h3>Get Profile (HGETALL)</h3>
+        <div class="form-row">
+          <input type="text" id="getUserId" placeholder="User ID" />
+          <button class="btn btn-primary" onclick="getUser()">HGETALL</button>
+        </div>
+        <div class="user-profile-card hidden" id="userProfileCard" style="margin-top:12px;padding:12px;background:var(--bg-input);border-radius:var(--radius-sm);"></div>
+        <div class="form-row" style="margin-top:12px;">
+          <input type="number" id="pointsAmount" placeholder="Points to add" value="10" />
+          <button class="btn btn-secondary" onclick="addPoints()">HINCRBY points</button>
+        </div>
+      </div>
+
+      <div class="lab-card full-width" id="lab-all-users">
+        <h3>All User Profiles</h3>
+        <button class="btn btn-secondary btn-sm" onclick="loadUsers()">Load All Users</button>
+        <div class="users-grid" id="usersGrid"></div>
+      </div>
+    </div>
+
+    <div class="response-panel" id="resp-hashes">
+      <div class="resp-header">
+        <span class="resp-label">Redis Console Response</span>
+        <code id="resp-hashes-cmd" class="cmd-display"></code>
+      </div>
+      <pre id="resp-hashes-body">Create or get a user profile above...</pre>
+      <div class="explanation-box" id="resp-hashes-explain"></div>
+    </div>
+  </section>
+
+  <!-- ── Module 5: SETS ── -->
+  <section class="module hidden" id="module-sets">
+    <div class="module-header">
+      <div class="module-badge">Module 5 of 8</div>
+      <h1>🔵 Sets — Unique Collections &amp; Set Math</h1>
+      <p class="module-desc">Sets store <strong>unique, unordered</strong> strings. Redis can perform <strong>SINTER</strong> (intersection), <strong>SUNION</strong> (union), and <strong>SDIFF</strong> (difference) on the server — making complex social graph queries trivial!</p>
+    </div>
+
+    <div class="lab-grid">
+      <div class="lab-card" id="lab-online">
+        <h3>👥 Online Users (Real-time Presence)</h3>
+        <div class="form-row">
+          <input type="text" id="onlineUser" placeholder="Username" />
+          <button class="btn btn-primary" onclick="userJoin()">SADD (Join)</button>
+          <button class="btn btn-danger" onclick="userLeave()">SREM (Leave)</button>
+        </div>
+        <div class="quick-actions">
+          <button class="chip" onclick="setOnlineUser('Alice')">Alice</button>
+          <button class="chip" onclick="setOnlineUser('Bob')">Bob</button>
+          <button class="chip" onclick="setOnlineUser('Charlie')">Charlie</button>
+          <button class="chip" onclick="setOnlineUser('Diana')">Diana</button>
+        </div>
+        <div class="online-display" id="onlineDisplay">
+          <div class="online-count" id="onlineCount">0 online</div>
+          <div class="online-users" id="onlineUsers"></div>
+        </div>
+      </div>
+
+      <div class="lab-card" id="lab-friends">
+        <h3>🤝 Friend System (Set Operations)</h3>
+        <div class="form-row">
+          <input type="text" id="fUser" placeholder="User" value="Alice" />
+          <input type="text" id="fFriend" placeholder="Friend" value="Bob" />
+          <button class="btn btn-primary" onclick="addFriend()">SADD (Add Friend)</button>
+        </div>
+        <div class="set-ops" id="setOps">
+          <div class="form-row" style="margin-top:12px;">
+            <input type="text" id="soUser1" placeholder="User 1" value="Alice" />
+            <input type="text" id="soUser2" placeholder="User 2" value="Bob" />
+          </div>
+          <div class="set-op-btns">
+            <button class="btn btn-op sinter" onclick="doSetOp('mutual')">SINTER<br/><small style="font-size:0.68rem;opacity:0.8;">Mutual Friends</small></button>
+            <button class="btn btn-op sunion" onclick="doSetOp('union')">SUNION<br/><small style="font-size:0.68rem;opacity:0.8;">All Friends</small></button>
+            <button class="btn btn-op sdiff" onclick="doSetOp('diff')">SDIFF<br/><small style="font-size:0.68rem;opacity:0.8;">Exclusive Friends</small></button>
+          </div>
+        </div>
+        <div class="set-result" id="setResult"></div>
+      </div>
+    </div>
+
+    <div class="response-panel" id="resp-sets">
+      <div class="resp-header">
+        <span class="resp-label">Redis Console Response</span>
+        <code id="resp-sets-cmd" class="cmd-display"></code>
+      </div>
+      <pre id="resp-sets-body">Add users or perform set operations above...</pre>
+      <div class="explanation-box" id="resp-sets-explain"></div>
+    </div>
+  </section>
+
+  <!-- ── Module 6: SORTED SETS ── -->
+  <section class="module hidden" id="module-sorted">
+    <div class="module-header">
+      <div class="module-badge">Module 6 of 8</div>
+      <h1>🏆 Sorted Sets — Auto-Ranked Leaderboard</h1>
+      <p class="module-desc">Sorted Sets combine a Hash and a Set: each member has a <strong>score</strong> (float) and members are <strong>always kept sorted</strong> by score. Insertions, lookups, and range queries are all O(log N).</p>
+    </div>
+
+    <div class="lab-grid">
+      <div class="lab-card" id="lab-leaderboard">
+        <h3>🎮 Global Leaderboard</h3>
+        <div class="form-row">
+          <input type="text" id="lbPlayer" placeholder="Player name" />
+          <input type="number" id="lbScore" placeholder="Score" />
+          <button class="btn btn-primary" onclick="addScore()">ZADD</button>
+          <button class="btn btn-secondary" onclick="incrementScore()">+ZINCRBY</button>
+        </div>
+        <div class="form-row">
+          <button class="btn btn-secondary btn-sm" onclick="seedLeaderboard()">🌱 Seed Sample Data</button>
+          <button class="btn btn-secondary btn-sm" onclick="loadLeaderboard()">🔄 Refresh ZREVRANGE</button>
+          <button class="btn btn-secondary btn-sm" onclick="getPlayerCount()" id="zcardBtn">📊 ZCARD (Total Count)</button>
+        </div>
+        <div class="zcard-result hidden" id="zcardResult"></div>
+        <div class="leaderboard" id="leaderboard"></div>
+      </div>
+
+      <div class="lab-card" id="lab-player-lookup">
+        <h3>🔍 Player Lookup</h3>
+        <div class="form-row">
+          <input type="text" id="lookupPlayer" placeholder="Player name" />
+          <button class="btn btn-primary" onclick="lookupPlayer()">ZSCORE + ZREVRANK</button>
+        </div>
+        <div class="player-stats" id="playerStats" style="margin-top:14px;padding:14px;background:var(--bg-input);border-radius:var(--radius-sm);font-family:var(--font-mono);font-size:0.82rem;"></div>
+      </div>
+    </div>
+
+    <div class="response-panel" id="resp-sorted">
+      <div class="resp-header">
+        <span class="resp-label">Redis Console Response</span>
+        <code id="resp-sorted-cmd" class="cmd-display"></code>
+      </div>
+      <pre id="resp-sorted-body">Add scores or seed the leaderboard above...</pre>
+      <div class="explanation-box" id="resp-sorted-explain"></div>
+    </div>
+  </section>
+
+  <!-- ── Module 7: PUB/SUB ── -->
+  <section class="module hidden" id="module-pubsub">
+    <div class="module-header">
+      <div class="module-badge">Module 7 of 8</div>
+      <h1>📡 Pub/Sub — Real-Time Messaging</h1>
+      <p class="module-desc">Pub/Sub is a <strong>fire-and-forget messaging pattern</strong>. Publishers send messages to channels without knowing who listens. Subscribers receive messages in real-time. Messages are NOT stored — it's purely real-time.</p>
+    </div>
+
+    <div class="concept-box">
+      <h3>💡 Key Concept</h3>
+      <div class="pubsub-diagram">
+        <div class="ps-box publisher">Publisher<br/><code>PUBLISH chat "Hello!"</code></div>
+        <div class="ps-arrow">→</div>
+        <div class="ps-box broker">Redis<br/>Channel: <code>chat</code></div>
+        <div class="ps-arrow">→</div>
+        <div class="ps-box subscribers">All Subscribers<br/><code>SUBSCRIBE chat</code></div>
+      </div>
+      <p style="text-align:center;color:var(--text-muted);font-size:0.85rem;margin-top:8px;">⚠️ If no subscribers are listening, the message is lost forever!</p>
+    </div>
+
+    <div class="chat-container" id="chatContainer">
+      <div class="chat-setup" id="chatSetup">
+        <div class="form-row">
+          <input type="text" id="chatChannel" placeholder="Channel name" value="general" />
+          <input type="text" id="chatUsername" placeholder="Your name" value="User1" />
+          <button class="btn btn-primary" onclick="joinChannel()">Subscribe &amp; Join</button>
+        </div>
+      </div>
+
+      <div class="chat-room hidden" id="chatRoom">
+        <div class="chat-header">
+          <span id="chatChannelLabel"></span>
+          <span class="chat-live-badge" style="color:var(--redis-red);font-size:0.75rem;">🔴 LIVE</span>
+          <button class="btn btn-danger btn-sm" onclick="leaveChannel()">Leave</button>
+        </div>
+        <div class="chat-messages" id="chatMessages"></div>
+        <div class="chat-input-row">
+          <input type="text" id="chatMsg" placeholder="Type a message..." onkeydown="if(event.key==='Enter')sendMessage()" />
+          <button class="btn btn-primary" onclick="sendMessage()">PUBLISH</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Experiment: Publish with 0 subscribers ── -->
+    <div class="concept-box" style="margin-top:20px;">
+      <h3>🧪 Experiment — Answer to Q2: What does PUBLISH return with 0 subscribers?</h3>
+      <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:16px;line-height:1.6;">
+        PUBLISH can be called <strong>independently</strong> of SUBSCRIBE. You don't need to be subscribed to publish.
+        Redis always returns the <strong>number of subscribers who received the message</strong>.
+        Use a <strong>channel nobody is listening to</strong> → Redis returns <code style="color:var(--redis-orange)">0</code>.
+      </p>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+        <!-- Scenario A: 0 subscribers -->
+        <div style="background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.2);border-radius:10px;padding:16px;">
+          <div style="font-size:0.75rem;font-weight:700;color:#EF4444;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px;">
+            🔴 Scenario A — 0 Subscribers
+          </div>
+          <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:10px;">
+            Publish to a <strong>ghost channel</strong> (nobody listening). Message is fired into void.
+          </p>
+          <div class="form-row">
+            <input type="text" id="ghostChannel" placeholder="Channel" value="ghost-channel" style="flex:1" />
+            <input type="text" id="ghostMsg" placeholder="Message" value="Hello void!" style="flex:1" />
+            <button class="btn btn-danger" onclick="publishToGhost()">PUBLISH</button>
+          </div>
+          <div id="ghostResult" style="margin-top:10px;display:none;padding:10px;background:var(--bg-2);border-radius:8px;font-family:var(--mono);font-size:0.8rem;"></div>
+        </div>
+
+        <!-- Scenario B: with subscribers -->
+        <div style="background:rgba(0,217,126,0.06);border:1px solid rgba(0,217,126,0.2);border-radius:10px;padding:16px;">
+          <div style="font-size:0.75rem;font-weight:700;color:var(--accent-green);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px;">
+            🟢 Scenario B — With Subscribers
+          </div>
+          <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:10px;">
+            <strong>Step 1:</strong> Join channel "live-demo" in the chat above.<br/>
+            <strong>Step 2:</strong> Publish here → see receiver count go up!
+          </p>
+          <div class="form-row">
+            <input type="text" id="liveChannel" placeholder="Channel" value="live-demo" style="flex:1" />
+            <input type="text" id="liveMsg" placeholder="Message" value="Anyone there?" style="flex:1" />
+            <button class="btn btn-primary" onclick="publishToLive()">PUBLISH</button>
+          </div>
+          <div id="liveResult" style="margin-top:10px;display:none;padding:10px;background:var(--bg-2);border-radius:8px;font-family:var(--mono);font-size:0.8rem;"></div>
+        </div>
+      </div>
+
+      <!-- Visual comparison -->
+      <div id="receiversComparison" style="display:none;padding:14px;background:var(--bg-2);border-radius:10px;border:1px solid var(--border);">
+        <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:8px;font-weight:600;">📊 PUBLISH return value comparison:</div>
+        <div style="display:flex;gap:24px;align-items:center;flex-wrap:wrap;">
+          <div style="text-align:center;">
+            <div style="font-size:2rem;font-weight:800;color:#EF4444;" id="ghostCount">—</div>
+            <div style="font-size:0.72rem;color:var(--text-muted);">receivers<br/>(ghost channel)</div>
+          </div>
+          <div style="font-size:1.5rem;color:var(--text-dim);">vs</div>
+          <div style="text-align:center;">
+            <div style="font-size:2rem;font-weight:800;color:var(--accent-green);" id="liveCount">—</div>
+            <div style="font-size:0.72rem;color:var(--text-muted);">receivers<br/>(live channel)</div>
+          </div>
+          <div style="flex:1;font-size:0.78rem;color:var(--text-muted);line-height:1.6;min-width:200px;">
+            💡 <strong style="color:var(--text)">Redis always returns an integer</strong> — the count of active subscribers who received the message. 
+            <code style="color:var(--redis-orange)">0</code> = message sent into void. No error thrown!
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="response-panel" id="resp-pubsub">
+      <div class="resp-header">
+        <span class="resp-label">Redis Console Response</span>
+        <code id="resp-pubsub-cmd" class="cmd-display"></code>
+      </div>
+      <pre id="resp-pubsub-body">Join a channel above to start the demo...</pre>
+      <div class="explanation-box" id="resp-pubsub-explain"></div>
+    </div>
+  </section>
+
+  <!-- ── Module 8: RATE LIMIT ── -->
+  <section class="module hidden" id="module-ratelimit">
+    <div class="module-header">
+      <div class="module-badge">Module 8 of 8</div>
+      <h1>🚦 Rate Limiting — INCR + EXPIRE Pattern</h1>
+      <p class="module-desc">One of the most elegant Redis patterns: use <strong>atomic INCR</strong> to count requests and <strong>EXPIRE</strong> to define the time window. No race conditions, no locks needed — Redis handles atomicity natively.</p>
+    </div>
+
+    <div class="concept-box">
+      <h3>💡 Fixed Window Counter Pattern</h3>
+      <div class="code-block" style="background:var(--bg-input);padding:14px;border-radius:var(--radius-sm);border:1px solid var(--border-subtle);">
+<pre style="font-family:var(--font-mono);font-size:0.8rem;color:var(--text-code);margin:0;"><code>key = "ratelimit:api:{user}:{window}"
+
+count = INCR key          # atomic increment
+IF count == 1:
+    EXPIRE key 60         # set 60s window on first request
+IF count > 10:
+    RETURN 429            # Too Many Requests
+ELSE:
+    RETURN 200            # OK, proceed</code></pre>
+      </div>
+    </div>
+
+    <div class="lab-grid">
+      <div class="lab-card" id="lab-ratelimit">
+        <h3>🔁 Simulate API Requests</h3>
+        <div class="form-row">
+          <input type="text" id="rlIdentifier" placeholder="User/IP identifier" value="user-123" />
+          <select id="rlType">
+            <option value="api">API (10 req/min)</option>
+            <option value="login">Login (5 req/min)</option>
+            <option value="search">Search (30 req/min)</option>
+          </select>
+          <button class="btn btn-primary" onclick="makeRequest()">Send Request</button>
+        </div>
+        <div class="rl-meter" id="rlMeter">
+          <div class="meter-bar-bg">
+            <div class="meter-bar-fill" id="meterFill" style="width:0%"></div>
+          </div>
+          <div class="meter-labels" id="meterLabels"><span>0 / ?</span><span>? seconds left</span></div>
+        </div>
+        <div class="request-log" id="requestLog"></div>
+        <button class="btn btn-secondary btn-sm" onclick="resetRateLimit()">🔄 Reset Counter</button>
+      </div>
+
+      <div class="lab-card" id="lab-rl-status">
+        <h3>📊 Rate Limit Status</h3>
+        <button class="btn btn-secondary" onclick="loadRlStatus()">Check Status</button>
+        <div class="rl-status-grid" id="rlStatusGrid" style="margin-top:14px;display:grid;grid-template-columns:repeat(auto-fill, minmax(180px, 1fr));gap:10px;"></div>
+      </div>
+    </div>
+
+    <div class="response-panel" id="resp-ratelimit">
+      <div class="resp-header">
+        <span class="resp-label">Redis Console Response</span>
+        <code id="resp-ratelimit-cmd" class="cmd-display"></code>
+      </div>
+      <pre id="resp-ratelimit-body">Send API requests above to see rate limiting in action...</pre>
+      <div class="explanation-box" id="resp-ratelimit-explain"></div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ═══════════════════════════════════════ CHEAT SHEET MODAL -->
+<div class="modal-overlay hidden" id="cheatSheetOverlay" onclick="toggleCheatSheet()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h2>📖 Redis Quick Reference &amp; Command Palette</h2>
+      <button class="modal-close" onclick="toggleCheatSheet()">✕</button>
+    </div>
+    <div class="cheat-sheet-grid">
+      <div class="cs-section">
+        <h4>🔑 Strings</h4>
+        <code>SET key value [EX sec]</code>
+        <code>GET key</code>
+        <code>DEL key</code>
+        <code>EXPIRE key seconds</code>
+        <code>TTL key</code>
+        <code>EXISTS key</code>
+        <code>INCR key</code>
+        <code>MSET k1 v1 k2 v2</code>
+      </div>
+      <div class="cs-section">
+        <h4>📋 Lists</h4>
+        <code>LPUSH key v1 v2</code>
+        <code>RPUSH key v1 v2</code>
+        <code>LPOP key</code>
+        <code>RPOP key</code>
+        <code>LRANGE key 0 -1</code>
+        <code>LLEN key</code>
+        <code>LTRIM key 0 99</code>
+        <code>LINDEX key i</code>
+      </div>
+      <div class="cs-section">
+        <h4>🗂️ Hashes</h4>
+        <code>HSET key f v</code>
+        <code>HGET key field</code>
+        <code>HGETALL key</code>
+        <code>HMSET key f1 v1...</code>
+        <code>HDEL key field</code>
+        <code>HEXISTS key field</code>
+        <code>HINCRBY key f n</code>
+        <code>HKEYS / HVALS key</code>
+      </div>
+      <div class="cs-section">
+        <h4>🔵 Sets</h4>
+        <code>SADD key m1 m2</code>
+        <code>SREM key member</code>
+        <code>SMEMBERS key</code>
+        <code>SISMEMBER key m</code>
+        <code>SCARD key</code>
+        <code>SINTER k1 k2</code>
+        <code>SUNION k1 k2</code>
+        <code>SDIFF k1 k2</code>
+      </div>
+      <div class="cs-section">
+        <h4>🏆 Sorted Sets</h4>
+        <code>ZADD key score m</code>
+        <code>ZRANGE key 0 -1</code>
+        <code>ZREVRANGE key 0 9</code>
+        <code>ZSCORE key member</code>
+        <code>ZRANK key member</code>
+        <code>ZREVRANK key m</code>
+        <code>ZINCRBY key n m</code>
+        <code>ZREM key member</code>
+      </div>
+      <div class="cs-section">
+        <h4>📡 Pub/Sub</h4>
+        <code>SUBSCRIBE channel</code>
+        <code>UNSUBSCRIBE ch</code>
+        <code>PUBLISH ch message</code>
+        <code>PSUBSCRIBE ch*</code>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
