@@ -17,7 +17,8 @@ app.use('/api/hashes',    require('./routes/hashes'));
 app.use('/api/sets',      require('./routes/sets'));
 app.use('/api/sorted',    require('./routes/sorted'));
 app.use('/api/pubsub',    require('./routes/pubsub'));
-app.use('/api/ratelimit', require('./routes/ratelimit'));
+app.use('/api/ratelimit',     require('./routes/ratelimit'));
+app.use('/api/bloom-filter',  require('./routes/bloom-filter'));
 
 // ── Health check ────────────────────────────────────────
 app.get('/api/ping', async (req, res) => {

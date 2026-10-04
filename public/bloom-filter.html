@@ -1,0 +1,1148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bloom Filter Learning Lab 🌸</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0a0a14;
+      --surface: #12121f;
+      --surface2: #1a1a2e;
+      --border: #2a2a45;
+      --accent: #7c3aed;
+      --accent2: #06b6d4;
+      --accent3: #f59e0b;
+      --green: #10b981;
+      --red: #ef4444;
+      --pink: #ec4899;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --bit-off: #1e1e3a;
+      --bit-on: #7c3aed;
+      --bit-check: #06b6d4;
+      --bit-hit: #10b981;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ───────── BACKGROUND ───────── */
+    .bg-grid {
+      position: fixed; inset: 0; z-index: 0;
+      background-image:
+        linear-gradient(rgba(124,58,237,.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(124,58,237,.04) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+    }
+    .bg-orb {
+      position: fixed; border-radius: 50%; filter: blur(120px); pointer-events: none; z-index: 0;
+    }
+    .orb1 { width:500px; height:500px; background:rgba(124,58,237,.12); top:-150px; left:-100px; }
+    .orb2 { width:400px; height:400px; background:rgba(6,182,212,.08); bottom:-100px; right:-100px; }
+
+    /* ───────── LAYOUT ───────── */
+    .wrap { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 0 24px 80px; }
+
+    /* ───────── HEADER ───────── */
+    header {
+      text-align: center; padding: 56px 24px 32px;
+      position: relative; z-index: 1;
+    }
+    .badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(124,58,237,.15); border: 1px solid rgba(124,58,237,.3);
+      border-radius: 999px; padding: 6px 16px; font-size: 13px;
+      color: #a78bfa; margin-bottom: 20px;
+      animation: fadeDown .6s ease both;
+    }
+    header h1 {
+      font-size: clamp(2rem, 5vw, 3.4rem); font-weight: 900;
+      background: linear-gradient(135deg, #a78bfa 0%, #06b6d4 50%, #f59e0b 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      line-height: 1.15; animation: fadeDown .7s ease .1s both;
+    }
+    header p {
+      color: var(--muted); font-size: 1.05rem; margin-top: 14px; max-width: 580px;
+      margin-left: auto; margin-right: auto; line-height: 1.7;
+      animation: fadeDown .7s ease .2s both;
+    }
+
+    /* ───────── CONCEPT CARDS ───────── */
+    .concept-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px; margin: 40px 0;
+    }
+    .concept-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; padding: 24px; transition: all .3s;
+    }
+    .concept-card:hover {
+      border-color: var(--accent); transform: translateY(-3px);
+      box-shadow: 0 12px 40px rgba(124,58,237,.15);
+    }
+    .concept-card .icon { font-size: 2rem; margin-bottom: 12px; }
+    .concept-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 8px; }
+    .concept-card p { font-size: .875rem; color: var(--muted); line-height: 1.6; }
+
+    /* ───────── SECTION TITLES ───────── */
+    .sec-title {
+      font-size: 1.4rem; font-weight: 800; margin-bottom: 8px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .sec-title .num {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex; align-items: center; justify-content: center;
+      font-size: .85rem; font-weight: 800; flex-shrink: 0;
+    }
+    .sec-sub { font-size: .9rem; color: var(--muted); margin-bottom: 24px; }
+
+    /* ───────── PANEL ───────── */
+    .panel {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 20px; padding: 32px; margin-bottom: 32px;
+    }
+    .panel-inner {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 12px; padding: 20px; margin-top: 20px;
+    }
+
+    /* ───────── BIT ARRAY ───────── */
+    .bit-array-wrap {
+      overflow-x: auto; padding: 16px 0;
+    }
+    .bit-array {
+      display: flex; gap: 6px; min-width: max-content;
+      justify-content: center; flex-wrap: wrap;
+    }
+    .bit-cell {
+      width: 44px; height: 44px; border-radius: 10px;
+      background: var(--bit-off); border: 2px solid transparent;
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; cursor: default;
+      transition: all .4s cubic-bezier(.34,1.56,.64,1);
+      position: relative; font-family: 'JetBrains Mono', monospace;
+    }
+    .bit-cell .bit-val {
+      font-size: 1rem; font-weight: 700; line-height: 1;
+    }
+    .bit-cell .bit-idx {
+      font-size: .6rem; color: var(--muted); margin-top: 2px; line-height: 1;
+    }
+    .bit-cell.on {
+      background: rgba(124,58,237,.25);
+      border-color: var(--accent);
+      box-shadow: 0 0 18px rgba(124,58,237,.4);
+    }
+    .bit-cell.on .bit-val { color: #a78bfa; }
+    .bit-cell.check-hit {
+      background: rgba(16,185,129,.2);
+      border-color: var(--green);
+      box-shadow: 0 0 18px rgba(16,185,129,.45);
+      animation: pulse-green .6s ease;
+    }
+    .bit-cell.check-hit .bit-val { color: #6ee7b7; }
+    .bit-cell.check-miss {
+      background: rgba(239,68,68,.2);
+      border-color: var(--red);
+      box-shadow: 0 0 18px rgba(239,68,68,.4);
+      animation: pulse-red .6s ease;
+    }
+    .bit-cell.check-miss .bit-val { color: #fca5a5; }
+    .bit-cell.adding {
+      animation: pop .5s cubic-bezier(.34,1.56,.64,1);
+    }
+
+    @keyframes pop {
+      0% { transform: scale(.8); opacity:.5; }
+      60% { transform: scale(1.2); }
+      100% { transform: scale(1); opacity:1; }
+    }
+    @keyframes pulse-green {
+      0%,100% { box-shadow: 0 0 18px rgba(16,185,129,.45); }
+      50% { box-shadow: 0 0 40px rgba(16,185,129,.8); }
+    }
+    @keyframes pulse-red {
+      0%,100% { box-shadow: 0 0 18px rgba(239,68,68,.4); }
+      50% { box-shadow: 0 0 40px rgba(239,68,68,.75); }
+    }
+
+    /* ───────── HASH VIZ ───────── */
+    .hash-viz { margin: 20px 0; }
+    .hash-row {
+      display: flex; align-items: center; gap: 12px; margin-bottom: 12px;
+      opacity: 0; transform: translateX(-20px);
+      transition: all .4s ease;
+    }
+    .hash-row.show { opacity: 1; transform: none; }
+    .hash-label {
+      font-family: 'JetBrains Mono', monospace; font-size: .8rem;
+      color: var(--muted); width: 70px; flex-shrink: 0;
+    }
+    .hash-arrow { color: var(--muted); font-size: 1rem; }
+    .hash-val {
+      font-family: 'JetBrains Mono', monospace; font-size: .85rem;
+      background: rgba(124,58,237,.12); border: 1px solid rgba(124,58,237,.25);
+      border-radius: 8px; padding: 4px 10px; color: #a78bfa;
+    }
+    .hash-arrow2 { color: var(--muted); }
+    .hash-pos {
+      font-family: 'JetBrains Mono', monospace; font-size: .9rem; font-weight: 700;
+      background: rgba(6,182,212,.12); border: 1px solid rgba(6,182,212,.3);
+      border-radius: 8px; padding: 4px 10px; color: #67e8f9;
+    }
+
+    /* ───────── CONTROLS ───────── */
+    .controls { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 20px; }
+    .inp {
+      flex: 1; min-width: 180px;
+      background: var(--surface2); border: 1.5px solid var(--border);
+      border-radius: 12px; padding: 12px 16px;
+      color: var(--text); font-size: .95rem; font-family: 'JetBrains Mono', monospace;
+      outline: none; transition: border-color .25s;
+    }
+    .inp:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(124,58,237,.15); }
+    .inp::placeholder { color: var(--muted); }
+
+    .btn {
+      padding: 12px 24px; border-radius: 12px; border: none; cursor: pointer;
+      font-size: .9rem; font-weight: 700; font-family: 'Inter', sans-serif;
+      transition: all .25s; white-space: nowrap;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), #6d28d9);
+      color: #fff; box-shadow: 0 4px 20px rgba(124,58,237,.35);
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(124,58,237,.5); }
+    .btn-secondary {
+      background: rgba(6,182,212,.12); border: 1.5px solid rgba(6,182,212,.3); color: #67e8f9;
+    }
+    .btn-secondary:hover { background: rgba(6,182,212,.22); transform: translateY(-2px); }
+    .btn-danger {
+      background: rgba(239,68,68,.12); border: 1.5px solid rgba(239,68,68,.3); color: #fca5a5;
+    }
+    .btn-danger:hover { background: rgba(239,68,68,.22); transform: translateY(-2px); }
+
+    /* ───────── RESULT BOX ───────── */
+    .result-box {
+      border-radius: 12px; padding: 16px 20px; margin-top: 16px;
+      font-size: .95rem; line-height: 1.6; display: none;
+      animation: fadeIn .35s ease;
+    }
+    .result-box.show { display: block; }
+    .result-yes {
+      background: rgba(16,185,129,.1); border: 1px solid rgba(16,185,129,.3); color: #6ee7b7;
+    }
+    .result-no {
+      background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.3); color: #fca5a5;
+    }
+    .result-fp {
+      background: rgba(245,158,11,.1); border: 1px solid rgba(245,158,11,.3); color: #fcd34d;
+    }
+    .result-added {
+      background: rgba(124,58,237,.1); border: 1px solid rgba(124,58,237,.3); color: #c4b5fd;
+    }
+
+    /* ───────── STATS BAR ───────── */
+    .stats-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px; margin-top: 20px;
+    }
+    .stat-card {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 12px; padding: 16px; text-align: center;
+    }
+    .stat-val {
+      font-size: 1.6rem; font-weight: 800; font-family: 'JetBrains Mono', monospace;
+      background: linear-gradient(135deg, #a78bfa, #67e8f9);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .stat-label { font-size: .75rem; color: var(--muted); margin-top: 4px; }
+
+    .fill-bar-wrap { margin-top: 12px; }
+    .fill-bar-label { font-size: .8rem; color: var(--muted); margin-bottom: 6px; }
+    .fill-bar {
+      height: 8px; background: var(--border); border-radius: 99px; overflow: hidden;
+    }
+    .fill-bar-inner {
+      height: 100%; border-radius: 99px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      transition: width .5s ease;
+    }
+
+    /* ───────── ITEMS LIST ───────── */
+    .items-list {
+      display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; min-height: 36px;
+    }
+    .item-tag {
+      background: rgba(124,58,237,.12); border: 1px solid rgba(124,58,237,.25);
+      border-radius: 999px; padding: 4px 12px; font-size: .8rem; color: #a78bfa;
+      font-family: 'JetBrains Mono', monospace;
+      animation: fadeIn .3s ease;
+    }
+
+    /* ───────── TASKS ───────── */
+    .task-list { counter-reset: task; }
+    .task-item {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 14px; padding: 20px 24px; margin-bottom: 12px;
+      display: flex; gap: 16px; align-items: flex-start;
+      transition: all .3s;
+    }
+    .task-item.done {
+      border-color: rgba(16,185,129,.3); background: rgba(16,185,129,.05);
+    }
+    .task-num {
+      width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+      background: rgba(124,58,237,.15); border: 1.5px solid rgba(124,58,237,.3);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: .9rem; color: #a78bfa;
+    }
+    .task-item.done .task-num {
+      background: rgba(16,185,129,.15); border-color: rgba(16,185,129,.4); color: #6ee7b7;
+    }
+    .task-content h4 { font-size: .95rem; font-weight: 700; margin-bottom: 6px; }
+    .task-content p { font-size: .85rem; color: var(--muted); line-height: 1.6; }
+    .task-check {
+      margin-left: auto; font-size: 1.4rem; flex-shrink: 0;
+      opacity: 0; transition: opacity .4s; margin-top: 2px;
+    }
+    .task-item.done .task-check { opacity: 1; }
+
+    /* ───────── HOW IT WORKS ───────── */
+    .how-steps {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+    }
+    .how-step {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 14px; padding: 20px; text-align: center;
+    }
+    .how-step .step-icon { font-size: 2.2rem; margin-bottom: 12px; }
+    .how-step h4 { font-size: .9rem; font-weight: 700; margin-bottom: 8px; }
+    .how-step p { font-size: .8rem; color: var(--muted); line-height: 1.6; }
+    .how-arrow { display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: var(--muted); }
+
+    /* ───────── LEGEND ───────── */
+    .legend { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 16px; }
+    .legend-item { display: flex; align-items: center; gap: 8px; font-size: .8rem; color: var(--muted); }
+    .legend-dot {
+      width: 14px; height: 14px; border-radius: 4px; flex-shrink: 0;
+    }
+    .l-off { background: var(--bit-off); border: 1.5px solid var(--border); }
+    .l-on { background: rgba(124,58,237,.25); border: 1.5px solid var(--accent); }
+    .l-hit { background: rgba(16,185,129,.2); border: 1.5px solid var(--green); }
+    .l-miss { background: rgba(239,68,68,.2); border: 1.5px solid var(--red); }
+
+    /* ───────── QUIZ ───────── */
+    .quiz-box {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 14px; padding: 24px; margin-top: 20px;
+    }
+    .quiz-q { font-size: 1rem; font-weight: 600; margin-bottom: 16px; }
+    .quiz-opts { display: flex; flex-direction: column; gap: 10px; }
+    .quiz-opt {
+      background: var(--surface); border: 1.5px solid var(--border);
+      border-radius: 10px; padding: 12px 16px; cursor: pointer;
+      font-size: .9rem; transition: all .25s;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .quiz-opt:hover { border-color: var(--accent); background: rgba(124,58,237,.08); }
+    .quiz-opt.correct { border-color: var(--green); background: rgba(16,185,129,.1); color: #6ee7b7; }
+    .quiz-opt.wrong { border-color: var(--red); background: rgba(239,68,68,.1); color: #fca5a5; }
+    .quiz-feedback { margin-top: 14px; padding: 12px 16px; border-radius: 10px; font-size: .9rem; }
+    .quiz-feedback.correct { background: rgba(16,185,129,.1); border: 1px solid rgba(16,185,129,.3); color: #6ee7b7; }
+    .quiz-feedback.wrong { background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.3); color: #fca5a5; }
+
+    /* ───────── SCENARIO ───────── */
+    .scenario-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px;
+    }
+    .scenario-card {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 14px; padding: 20px; transition: all .3s;
+      cursor: pointer;
+    }
+    .scenario-card:hover {
+      border-color: var(--accent); transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(124,58,237,.15);
+    }
+    .scenario-card .s-icon { font-size: 2rem; margin-bottom: 10px; }
+    .scenario-card h4 { font-size: .95rem; font-weight: 700; margin-bottom: 6px; }
+    .scenario-card p { font-size: .82rem; color: var(--muted); line-height: 1.6; }
+
+    /* ───────── PROGRESS ───────── */
+    .progress-bar-wrap {
+      position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 999;
+    }
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent2), var(--accent3));
+      width: 0%; transition: width .4s ease;
+    }
+
+    /* ───────── DIVIDER ───────── */
+    .divider {
+      height: 1px; background: var(--border); margin: 40px 0;
+    }
+
+    /* ───────── ANIMATIONS ───────── */
+    @keyframes fadeDown {
+      from { opacity:0; transform:translateY(-20px); }
+      to { opacity:1; transform:translateY(0); }
+    }
+    @keyframes fadeIn {
+      from { opacity:0; transform:scale(.96); }
+      to { opacity:1; transform:scale(1); }
+    }
+    @keyframes float {
+      0%,100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+
+    /* ───────── TOOLTIP ───────── */
+    [data-tip] { position: relative; cursor: help; }
+    [data-tip]::after {
+      content: attr(data-tip);
+      position: absolute; bottom: calc(100% + 8px); left: 50%;
+      transform: translateX(-50%); background: #1e1e3a;
+      border: 1px solid var(--border); border-radius: 8px;
+      padding: 6px 10px; font-size: .78rem; white-space: nowrap;
+      pointer-events: none; opacity: 0; transition: opacity .2s; z-index: 10;
+      color: var(--text); font-style: normal;
+    }
+    [data-tip]:hover::after { opacity: 1; }
+
+    /* ───────── SCROLL FADE IN ───────── */
+    .reveal { opacity: 0; transform: translateY(30px); transition: all .6s ease; }
+    .reveal.visible { opacity: 1; transform: none; }
+
+    /* Responsive */
+    @media (max-width: 600px) {
+      .panel { padding: 20px 16px; }
+      .bit-cell { width: 38px; height: 38px; }
+      .controls { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Progress bar -->
+<div class="progress-bar-wrap"><div class="progress-bar" id="progressBar"></div></div>
+
+<!-- Background -->
+<div class="bg-grid"></div>
+<div class="bg-orb orb1"></div>
+<div class="bg-orb orb2"></div>
+
+<!-- ═══════════════════════════════ HEADER ═══════════════════════════════ -->
+<header>
+  <div class="badge">🌸 Interactive Learning Lab · Bloom Filters</div>
+  <h1>Bloom Filter<br/>Learning Lab</h1>
+  <p>A hands-on visual playground to understand how Bloom Filters work — by <em>actually building and querying one yourself</em>.</p>
+</header>
+
+<div class="wrap">
+
+  <!-- ── CONCEPT INTRO ── -->
+  <div class="concept-grid reveal">
+    <div class="concept-card">
+      <div class="icon">🎯</div>
+      <h3>What is it?</h3>
+      <p>A probabilistic data structure that tells you whether an item is <strong>definitely NOT in a set</strong>, or <em>possibly</em> in it.</p>
+    </div>
+    <div class="concept-card">
+      <div class="icon">⚡</div>
+      <h3>Why use it?</h3>
+      <p>Extremely fast O(k) lookups and tiny memory footprint — no false negatives, but rare false positives.</p>
+    </div>
+    <div class="concept-card">
+      <div class="icon">🔑</div>
+      <h3>Key Insight</h3>
+      <p>Multiple hash functions map each item to positions in a bit array. <strong>All bits must be 1</strong> for a "possible yes".</p>
+    </div>
+    <div class="concept-card">
+      <div class="icon">🏗️</div>
+      <h3>Real Uses</h3>
+      <p>Redis, Chrome safe-browsing, Cassandra, spell checkers, CDN caches, blockchain, and more.</p>
+    </div>
+  </div>
+
+  <!-- ── HOW IT WORKS ── -->
+  <div class="panel reveal">
+    <div class="sec-title"><span class="num">📖</span> How It Works</div>
+    <p class="sec-sub">Three simple rules power everything.</p>
+    <div class="how-steps">
+      <div class="how-step">
+        <div class="step-icon">🗄️</div>
+        <h4>Bit Array</h4>
+        <p>Start with an array of <strong>m bits</strong>, all set to 0.</p>
+      </div>
+      <div class="how-step">
+        <div class="step-icon">#️⃣</div>
+        <h4>k Hash Functions</h4>
+        <p>When adding an item, run it through <strong>k different hash functions</strong>, each giving a position.</p>
+      </div>
+      <div class="how-step">
+        <div class="step-icon">💡</div>
+        <h4>Set Bits</h4>
+        <p>Set bit[h1(x)], bit[h2(x)], bit[h3(x)] to <strong>1</strong>.</p>
+      </div>
+      <div class="how-step">
+        <div class="step-icon">🔍</div>
+        <h4>Query</h4>
+        <p>Check all k positions. If <strong>any bit is 0</strong> → definitely absent. All 1s → possibly present.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ══════════════════════════════════════════════════
+       SECTION 1 — THE PLAYGROUND
+  ══════════════════════════════════════════════════ -->
+  <div class="reveal">
+    <div class="sec-title"><span class="num">1</span> The Live Bloom Filter</div>
+    <p class="sec-sub">Add words and watch the bit array update in real time. Then check if a word exists!</p>
+  </div>
+
+  <!-- Bit Array Visualisation -->
+  <div class="panel reveal">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+      <div>
+        <strong>Bit Array</strong> <span style="font-size:.8rem; color:var(--muted); font-family:'JetBrains Mono',monospace;" id="arraySizeLabel">(m=32 bits, k=3 hash functions)</span>
+      </div>
+      <button class="btn btn-danger" onclick="resetFilter()">🔄 Reset Filter</button>
+    </div>
+
+    <div class="bit-array-wrap" style="margin-top:16px;">
+      <div class="bit-array" id="bitArray"></div>
+    </div>
+
+    <!-- Legend -->
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot l-off"></div> 0 (empty)</div>
+      <div class="legend-item"><div class="legend-dot l-on"></div> 1 (set by add)</div>
+      <div class="legend-item"><div class="legend-dot l-hit"></div> 1 (query hit)</div>
+      <div class="legend-item"><div class="legend-dot l-miss"></div> 0 (query miss)</div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-val" id="statItems">0</div>
+        <div class="stat-label">Items Added</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="statBitsSet">0</div>
+        <div class="stat-label">Bits Set</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="statFPRate">0%</div>
+        <div class="stat-label">Est. False Positive Rate</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="statFill">0%</div>
+        <div class="stat-label">Fill Ratio</div>
+      </div>
+    </div>
+    <div class="fill-bar-wrap">
+      <div class="fill-bar-label">Bit Array Fill</div>
+      <div class="fill-bar"><div class="fill-bar-inner" id="fillBar" style="width:0%"></div></div>
+    </div>
+  </div>
+
+  <!-- ADD ITEM -->
+  <div class="panel reveal">
+    <div class="sec-title"><span class="num">➕</span> Add an Item</div>
+    <p class="sec-sub">Type any word and add it. Watch the hash functions light up positions in the bit array.</p>
+
+    <div class="controls">
+      <input class="inp" id="addInput" type="text" placeholder="e.g. apple, banana, redis…" maxlength="30" />
+      <button class="btn btn-primary" onclick="addItem()">Add to Filter</button>
+      <button class="btn btn-secondary" onclick="addRandom()">🎲 Add Random</button>
+    </div>
+
+    <div class="hash-viz" id="hashViz" style="display:none;">
+      <div style="font-size:.85rem; color:var(--muted); margin-bottom:10px;">Hash function positions for <span id="hashWord" style="color:#a78bfa; font-weight:700;"></span>:</div>
+      <div id="hashRows"></div>
+    </div>
+
+    <div class="result-box result-added" id="addResult"></div>
+
+    <div style="margin-top:16px;">
+      <div style="font-size:.8rem; color:var(--muted); margin-bottom:8px;">Items in filter:</div>
+      <div class="items-list" id="itemsList"><span style="color:var(--muted); font-size:.8rem;">None yet — add some above!</span></div>
+    </div>
+  </div>
+
+  <!-- CHECK MEMBERSHIP -->
+  <div class="panel reveal">
+    <div class="sec-title"><span class="num">🔍</span> Check Membership</div>
+    <p class="sec-sub">Query the filter. Try a word you added AND a word you didn't — can you trigger a <strong>false positive</strong>?</p>
+
+    <div class="controls">
+      <input class="inp" id="checkInput" type="text" placeholder="e.g. apple, xyz123…" maxlength="30" />
+      <button class="btn btn-secondary" onclick="checkItem()">Check Filter</button>
+    </div>
+
+    <div class="hash-viz" id="checkHashViz" style="display:none;">
+      <div style="font-size:.85rem; color:var(--muted); margin-bottom:10px;">Checking positions for <span id="checkHashWord" style="color:#67e8f9; font-weight:700;"></span>:</div>
+      <div id="checkHashRows"></div>
+    </div>
+
+    <div class="result-box" id="checkResult"></div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ══════════════════════════════════════════════════
+       SECTION 2 — GUIDED TASKS
+  ══════════════════════════════════════════════════ -->
+  <div class="reveal">
+    <div class="sec-title"><span class="num">2</span> Guided Tasks</div>
+    <p class="sec-sub">Complete these challenges to truly understand Bloom Filters. They auto-check as you use the lab above!</p>
+  </div>
+
+  <div class="panel reveal">
+    <div class="task-list" id="taskList">
+
+      <div class="task-item" id="task1" data-done="false">
+        <div class="task-num">1</div>
+        <div class="task-content">
+          <h4>🌱 Add your first item</h4>
+          <p>Type any word in "Add an Item" above and click Add. Watch which bits flip from 0→1.</p>
+        </div>
+        <div class="task-check">✅</div>
+      </div>
+
+      <div class="task-item" id="task2" data-done="false">
+        <div class="task-num">2</div>
+        <div class="task-content">
+          <h4>🔍 Confirm: item you added IS found</h4>
+          <p>Go to "Check Membership" and search for the exact word you just added. It should say <em>Possibly in set</em>.</p>
+        </div>
+        <div class="task-check">✅</div>
+      </div>
+
+      <div class="task-item" id="task3" data-done="false">
+        <div class="task-num">3</div>
+        <div class="task-content">
+          <h4>🚫 Confirm: unknown item is NOT found</h4>
+          <p>Search for a word you never added (try "zzz999"). It should say <em>Definitely NOT in set</em>.</p>
+        </div>
+        <div class="task-check">✅</div>
+      </div>
+
+      <div class="task-item" id="task4" data-done="false">
+        <div class="task-num">4</div>
+        <div class="task-content">
+          <h4>🌊 Fill the filter — add 5+ items</h4>
+          <p>Add at least 5 different words. Watch the fill ratio climb and the estimated false positive rate rise.</p>
+        </div>
+        <div class="task-check">✅</div>
+      </div>
+
+      <div class="task-item" id="task5" data-done="false">
+        <div class="task-num">5</div>
+        <div class="task-content">
+          <h4>⚠️ Hunt for a False Positive!</h4>
+          <p>After adding many items, search for words you <em>didn't</em> add. Eventually you'll hit a false positive — where all bits are 1 by coincidence. This is the Bloom Filter's trade-off!</p>
+        </div>
+        <div class="task-check">✅</div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ══════════════════════════════════════════════════
+       SECTION 3 — QUIZ
+  ══════════════════════════════════════════════════ -->
+  <div class="reveal">
+    <div class="sec-title"><span class="num">3</span> Knowledge Check</div>
+    <p class="sec-sub">Test your understanding with these quick questions.</p>
+  </div>
+
+  <div class="panel reveal">
+    <!-- Q1 -->
+    <div class="quiz-box" id="q1-box">
+      <div class="quiz-q">Q1: A Bloom Filter says an item is "possibly in the set." What can you conclude?</div>
+      <div class="quiz-opts">
+        <div class="quiz-opt" onclick="answer('q1','a','b')">🔴 The item is definitely in the set</div>
+        <div class="quiz-opt" onclick="answer('q1','b','b')">🟡 The item <em>might</em> be in the set — there could be a false positive</div>
+        <div class="quiz-opt" onclick="answer('q1','c','b')">🔵 The item is definitely NOT in the set</div>
+      </div>
+      <div class="quiz-feedback" id="q1-fb" style="display:none;"></div>
+    </div>
+
+    <!-- Q2 -->
+    <div class="quiz-box" id="q2-box" style="margin-top:16px;">
+      <div class="quiz-q">Q2: When a Bloom Filter says "definitely NOT in set", can it be wrong?</div>
+      <div class="quiz-opts">
+        <div class="quiz-opt" onclick="answer('q2','a','a')">✅ No — Bloom Filters have zero false negatives</div>
+        <div class="quiz-opt" onclick="answer('q2','b','a')">❌ Yes — it could still be wrong (false negative)</div>
+        <div class="quiz-opt" onclick="answer('q2','c','a')">🤷 It depends on the hash functions</div>
+      </div>
+      <div class="quiz-feedback" id="q2-fb" style="display:none;"></div>
+    </div>
+
+    <!-- Q3 -->
+    <div class="quiz-box" id="q3-box" style="margin-top:16px;">
+      <div class="quiz-q">Q3: What happens to the false positive rate as you add MORE items?</div>
+      <div class="quiz-opts">
+        <div class="quiz-opt" onclick="answer('q3','b','b')">📈 It increases — more bits get set, collisions become likely</div>
+        <div class="quiz-opt" onclick="answer('q3','a','b')">📉 It decreases — more data means more accuracy</div>
+        <div class="quiz-opt" onclick="answer('q3','c','b')">📊 It stays constant regardless of load</div>
+      </div>
+      <div class="quiz-feedback" id="q3-fb" style="display:none;"></div>
+    </div>
+
+    <!-- Q4 -->
+    <div class="quiz-box" id="q4-box" style="margin-top:16px;">
+      <div class="quiz-q">Q4: You add "apple" to the filter. Can you later remove "apple" from it?</div>
+      <div class="quiz-opts">
+        <div class="quiz-opt" onclick="answer('q4','b','b')">🚫 No — standard Bloom Filters don't support deletion</div>
+        <div class="quiz-opt" onclick="answer('q4','a','b')">✅ Yes — just flip its bits back to 0</div>
+        <div class="quiz-opt" onclick="answer('q4','c','b')">🔄 Yes — but only if you reset the whole filter first</div>
+      </div>
+      <div class="quiz-feedback" id="q4-fb" style="display:none;"></div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ══════════════════════════════════════════════════
+       SECTION 4 — REAL-WORLD SCENARIOS
+  ══════════════════════════════════════════════════ -->
+  <div class="reveal">
+    <div class="sec-title"><span class="num">4</span> Real-World Applications</div>
+    <p class="sec-sub">Where Bloom Filters shine in production systems.</p>
+  </div>
+
+  <div class="scenario-grid reveal">
+    <div class="scenario-card">
+      <div class="s-icon">🌐</div>
+      <h4>Chrome Safe Browsing</h4>
+      <p>A Bloom Filter of malicious URLs is stored locally. Before checking a remote database, Chrome checks the filter — saving millions of network calls.</p>
+    </div>
+    <div class="scenario-card">
+      <div class="s-icon">🗄️</div>
+      <h4>Redis / Cassandra</h4>
+      <p>Before reading from disk (slow), check a Bloom Filter if the key exists. If it says "no" — skip the disk read entirely!</p>
+    </div>
+    <div class="scenario-card">
+      <div class="s-icon">📧</div>
+      <h4>Spam Detection</h4>
+      <p>A Bloom Filter of known spam email addresses lets servers quickly skip expensive full lookups for obvious non-matches.</p>
+    </div>
+    <div class="scenario-card">
+      <div class="s-icon">💰</div>
+      <h4>Blockchain</h4>
+      <p>Bitcoin uses Bloom Filters so lightweight clients can check if a transaction is relevant without downloading the full blockchain.</p>
+    </div>
+    <div class="scenario-card">
+      <div class="s-icon">🔡</div>
+      <h4>Spell Checkers</h4>
+      <p>A Bloom Filter of valid words lets spell checkers quickly flag obviously wrong words without a full dictionary lookup.</p>
+    </div>
+    <div class="scenario-card">
+      <div class="s-icon">📡</div>
+      <h4>CDN / Caches</h4>
+      <p>Track which URLs have been requested before. Only cache "popular" content — saving memory by avoiding one-hit-wonders.</p>
+    </div>
+  </div>
+
+  <!-- ── SUMMARY TABLE ── -->
+  <div class="panel reveal" style="margin-top:32px;">
+    <div class="sec-title"><span class="num">📊</span> Quick Reference</div>
+    <table style="width:100%; border-collapse:collapse; margin-top:16px; font-size:.88rem;">
+      <thead>
+        <tr style="border-bottom:1px solid var(--border);">
+          <th style="text-align:left; padding:10px 14px; color:var(--muted); font-weight:600;">Property</th>
+          <th style="text-align:left; padding:10px 14px; color:var(--muted); font-weight:600;">Bloom Filter</th>
+          <th style="text-align:left; padding:10px 14px; color:var(--muted); font-weight:600;">Hash Set</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="border-bottom:1px solid var(--border);">
+          <td style="padding:10px 14px;">Space</td>
+          <td style="padding:10px 14px; color:#6ee7b7;">🟢 Sub-linear (tiny!)</td>
+          <td style="padding:10px 14px; color:#fca5a5;">🔴 O(n)</td>
+        </tr>
+        <tr style="border-bottom:1px solid var(--border);">
+          <td style="padding:10px 14px;">False Negatives</td>
+          <td style="padding:10px 14px; color:#6ee7b7;">🟢 Never</td>
+          <td style="padding:10px 14px; color:#6ee7b7;">🟢 Never</td>
+        </tr>
+        <tr style="border-bottom:1px solid var(--border);">
+          <td style="padding:10px 14px;">False Positives</td>
+          <td style="padding:10px 14px; color:#fcd34d;">🟡 Possible (tunable)</td>
+          <td style="padding:10px 14px; color:#6ee7b7;">🟢 Never</td>
+        </tr>
+        <tr style="border-bottom:1px solid var(--border);">
+          <td style="padding:10px 14px;">Deletion</td>
+          <td style="padding:10px 14px; color:#fca5a5;">🔴 Not supported</td>
+          <td style="padding:10px 14px; color:#6ee7b7;">🟢 Supported</td>
+        </tr>
+        <tr>
+          <td style="padding:10px 14px;">Lookup Speed</td>
+          <td style="padding:10px 14px; color:#6ee7b7;">🟢 O(k) constant</td>
+          <td style="padding:10px 14px; color:#6ee7b7;">🟢 O(1) average</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ── FOOTER ── -->
+  <div style="text-align:center; padding: 40px 0 20px; color:var(--muted); font-size:.85rem;">
+    Built with ❤️ for learning · Bloom Filter Lab 🌸
+  </div>
+
+</div><!-- end .wrap -->
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  BLOOM FILTER ENGINE
+// ═══════════════════════════════════════════════════════
+
+const M = 32;   // bit array size
+const K = 3;    // number of hash functions
+const WORDS_POOL = ['apple','banana','cherry','mango','grape','lemon','peach','melon',
+  'redis','bloom','cache','hash','bit','node','data','fast','miss','hit','zero','one',
+  'sky','sun','moon','star','rain','wind','fire','ice','sand','salt'];
+
+let bitArray = new Array(M).fill(0);
+let addedItems = [];
+let checkedItems = [];
+let tasksDone = { task1:false, task2:false, task3:false, task4:false, task5:false };
+let quizAnswered = {};
+
+// ── Simple but effective hash functions ──
+function hash1(str) {
+  let h = 0x811c9dc5;
+  for (let i=0; i<str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = (h * 0x01000193) >>> 0;
+  }
+  return h % M;
+}
+function hash2(str) {
+  let h = 0;
+  for (let i=0; i<str.length; i++) {
+    h = (Math.imul(31, h) + str.charCodeAt(i)) >>> 0;
+  }
+  return h % M;
+}
+function hash3(str) {
+  let h = 5381;
+  for (let i=0; i<str.length; i++) {
+    h = ((h << 5) + h + str.charCodeAt(i)) >>> 0;
+  }
+  return h % M;
+}
+
+function getPositions(word) {
+  const w = word.toLowerCase().trim();
+  return [
+    { fn: 'h1(FNV)', val: hash1(w) },
+    { fn: 'h2(POLY)', val: hash2(w) },
+    { fn: 'h3(DJB2)', val: hash3(w) },
+  ];
+}
+
+// ── Estimated False Positive Rate: (1 - e^(-kn/m))^k ──
+function fpRate() {
+  const n = addedItems.length;
+  if (n === 0) return 0;
+  return Math.pow(1 - Math.exp(-K * n / M), K);
+}
+
+// ═══════════════════════════════════════════════════════
+//  RENDER
+// ═══════════════════════════════════════════════════════
+
+function renderBitArray(highlights) {
+  const container = document.getElementById('bitArray');
+  container.innerHTML = '';
+  for (let i=0; i<M; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'bit-cell';
+    cell.id = `bit-${i}`;
+
+    // highlight classes from recent op
+    if (highlights) {
+      const h = highlights.find(h => h.pos === i);
+      if (h) cell.classList.add(h.cls);
+    }
+    if (bitArray[i] === 1 && !cell.classList.contains('check-miss')) {
+      cell.classList.add('on');
+    }
+
+    cell.innerHTML = `<span class="bit-val">${bitArray[i]}</span><span class="bit-idx">${i}</span>`;
+    cell.setAttribute('data-tip', `index ${i}`);
+    container.appendChild(cell);
+  }
+}
+
+function renderStats() {
+  const bitsSet = bitArray.filter(b => b === 1).length;
+  const fill = ((bitsSet / M) * 100).toFixed(0);
+  const fp = (fpRate() * 100).toFixed(1);
+
+  document.getElementById('statItems').textContent = addedItems.length;
+  document.getElementById('statBitsSet').textContent = bitsSet;
+  document.getElementById('statFPRate').textContent = fp + '%';
+  document.getElementById('statFill').textContent = fill + '%';
+  document.getElementById('fillBar').style.width = fill + '%';
+
+  // Progress bar at top of page
+  const progress = Math.min((addedItems.length / 5) * 70 + Object.values(tasksDone).filter(Boolean).length * 6, 100);
+  document.getElementById('progressBar').style.width = progress + '%';
+}
+
+function renderItemsList() {
+  const el = document.getElementById('itemsList');
+  if (addedItems.length === 0) {
+    el.innerHTML = '<span style="color:var(--muted); font-size:.8rem;">None yet — add some above!</span>';
+    return;
+  }
+  el.innerHTML = addedItems.map(w =>
+    `<span class="item-tag">${w}</span>`
+  ).join('');
+}
+
+function renderHashViz(word, positions, containerId, wordSpanId) {
+  const viz = document.getElementById(containerId === 'hashViz' ? 'hashViz' : 'checkHashViz');
+  const rowsEl = document.getElementById(containerId === 'hashViz' ? 'hashRows' : 'checkHashRows');
+  const wordSpan = document.getElementById(wordSpanId);
+
+  viz.style.display = 'block';
+  wordSpan.textContent = '"' + word + '"';
+  rowsEl.innerHTML = '';
+
+  positions.forEach((p, idx) => {
+    const row = document.createElement('div');
+    row.className = 'hash-row';
+    row.innerHTML = `
+      <span class="hash-label">${p.fn}</span>
+      <span class="hash-arrow">→</span>
+      <span class="hash-val">${p.val}</span>
+      <span class="hash-arrow2">→</span>
+      <span class="hash-pos">bit[${p.val}] = ${bitArray[p.pos ?? p.val]}</span>
+    `;
+    rowsEl.appendChild(row);
+    setTimeout(() => row.classList.add('show'), idx * 150);
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+//  ADD
+// ═══════════════════════════════════════════════════════
+function addItem() {
+  const input = document.getElementById('addInput');
+  const word = input.value.trim().toLowerCase();
+  if (!word) { input.focus(); return; }
+  input.value = '';
+
+  const positions = getPositions(word);
+  const highlights = [];
+  const newBits = [];
+
+  positions.forEach(p => {
+    if (bitArray[p.val] === 0) newBits.push(p.val);
+    bitArray[p.val] = 1;
+    highlights.push({ pos: p.val, cls: 'adding' });
+  });
+
+  renderBitArray(highlights);
+  renderHashViz(word, positions, 'hashViz', 'hashWord');
+
+  // Flash animation on changed cells
+  highlights.forEach(h => {
+    setTimeout(() => {
+      const cell = document.getElementById(`bit-${h.pos}`);
+      if (cell) { cell.classList.add('adding'); }
+    }, 50);
+  });
+
+  if (!addedItems.includes(word)) addedItems.push(word);
+  renderItemsList();
+
+  const res = document.getElementById('addResult');
+  res.className = 'result-box result-added show';
+  res.innerHTML = `✅ <strong>"${word}"</strong> added! Set bits: ${positions.map(p => `<code style="background:rgba(124,58,237,.15);padding:2px 6px;border-radius:4px;">[${p.val}]</code>`).join(', ')} — ${newBits.length} new bit(s) flipped to 1.`;
+
+  renderStats();
+  checkTasks();
+  input.focus();
+}
+
+// ═══════════════════════════════════════════════════════
+//  CHECK
+// ═══════════════════════════════════════════════════════
+function checkItem() {
+  const input = document.getElementById('checkInput');
+  const word = input.value.trim().toLowerCase();
+  if (!word) { input.focus(); return; }
+
+  const positions = getPositions(word);
+  const allSet = positions.every(p => bitArray[p.val] === 1);
+  const highlights = positions.map(p => ({
+    pos: p.val,
+    cls: bitArray[p.val] === 1 ? 'check-hit' : 'check-miss'
+  }));
+
+  renderBitArray(highlights);
+  renderHashViz(word, positions, 'checkHashViz', 'checkHashWord');
+
+  const res = document.getElementById('checkResult');
+  const isActuallyIn = addedItems.includes(word);
+
+  if (allSet && isActuallyIn) {
+    res.className = 'result-box result-yes show';
+    res.innerHTML = `✅ <strong>Possibly in set</strong> — and indeed you added "${word}"! All ${K} bits are set. (True Positive)`;
+    markTask('task2', true);
+  } else if (allSet && !isActuallyIn) {
+    res.className = 'result-box result-fp show';
+    res.innerHTML = `⚠️ <strong>FALSE POSITIVE!</strong> The filter says "${word}" is <em>possibly in set</em>, but you never added it! All ${K} bits happened to be set by other items — this is the classic Bloom Filter trade-off. 🎉`;
+    markTask('task5', true);
+  } else {
+    res.className = 'result-box result-no show';
+    res.innerHTML = `🚫 <strong>Definitely NOT in set</strong> — at least one of the ${K} bit positions is 0 (positions checked: ${positions.map(p=>`[${p.val}]=${bitArray[p.val]}`).join(', ')}). This is a guaranteed true negative!`;
+    markTask('task3', true);
+  }
+
+  checkedItems.push(word);
+  checkTasks();
+  input.value = '';
+  input.focus();
+}
+
+// ═══════════════════════════════════════════════════════
+//  RESET
+// ═══════════════════════════════════════════════════════
+function resetFilter() {
+  bitArray = new Array(M).fill(0);
+  addedItems = [];
+  checkedItems = [];
+  renderBitArray();
+  renderItemsList();
+  renderStats();
+  document.getElementById('addResult').className = 'result-box';
+  document.getElementById('checkResult').className = 'result-box';
+  document.getElementById('hashViz').style.display = 'none';
+  document.getElementById('checkHashViz').style.display = 'none';
+  // Reset tasks
+  Object.keys(tasksDone).forEach(t => { tasksDone[t] = false; markTask(t, false); });
+}
+
+// ═══════════════════════════════════════════════════════
+//  RANDOM
+// ═══════════════════════════════════════════════════════
+function addRandom() {
+  const unused = WORDS_POOL.filter(w => !addedItems.includes(w));
+  const pool = unused.length > 0 ? unused : WORDS_POOL;
+  const word = pool[Math.floor(Math.random() * pool.length)];
+  document.getElementById('addInput').value = word;
+  addItem();
+}
+
+// ═══════════════════════════════════════════════════════
+//  TASKS
+// ═══════════════════════════════════════════════════════
+function checkTasks() {
+  if (addedItems.length >= 1) markTask('task1', true);
+  if (addedItems.length >= 5) markTask('task4', true);
+}
+
+function markTask(id, done) {
+  tasksDone[id] = done;
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (done) el.classList.add('done');
+  else el.classList.remove('done');
+  renderStats();
+}
+
+// ═══════════════════════════════════════════════════════
+//  QUIZ
+// ═══════════════════════════════════════════════════════
+const quizAnswers = {
+  q1: { correct: 'b', feedbacks: {
+    a: '❌ Incorrect — Bloom Filters can have false positives! "Possibly" means it <em>might</em> be there.',
+    b: '✅ Correct! Bloom Filters can return false positives — the item might not actually be in the set.',
+    c: '❌ Incorrect — that\'s the opposite! "Definitely not" is a guaranteed true negative.'
+  }},
+  q2: { correct: 'a', feedbacks: {
+    a: '✅ Correct! Bloom Filters have <strong>zero false negatives</strong>. If all k bits are 0, the item was definitely never added.',
+    b: '❌ Incorrect — Bloom Filters guarantee no false negatives. If it says "no", it\'s definitely no.',
+    c: '❌ Incorrect — this guarantee holds regardless of hash functions (as long as they\'re deterministic).'
+  }},
+  q3: { correct: 'b', feedbacks: {
+    a: '❌ Incorrect — more items means more bits set, increasing the chance of accidental collisions.',
+    b: '✅ Correct! As the filter fills up, more bit positions are set to 1. Unrelated items are more likely to accidentally match all k positions.',
+    c: '❌ Incorrect — the false positive rate definitely grows with more items. That\'s why you need to size your filter properly!'
+  }},
+  q4: { correct: 'b', feedbacks: {
+    a: '❌ Incorrect — flipping bits back to 0 could corrupt other items that share those bit positions!',
+    b: '✅ Correct! Standard Bloom Filters don\'t support deletion. Use a <em>Counting Bloom Filter</em> if you need deletion.',
+    c: '❌ Incorrect — resetting deletes everything. Standard Bloom Filters simply cannot delete individual items.'
+  }}
+};
+
+function answer(qid, chosen, correct) {
+  if (quizAnswered[qid]) return;
+  quizAnswered[qid] = true;
+
+  const box = document.getElementById(`${qid}-box`);
+  const fb = document.getElementById(`${qid}-fb`);
+  const opts = box.querySelectorAll('.quiz-opt');
+  const qa = quizAnswers[qid];
+
+  opts.forEach((opt, i) => {
+    const letters = ['a','b','c'];
+    opt.style.pointerEvents = 'none';
+    if (letters[i] === qa.correct) opt.classList.add('correct');
+    else if (letters[i] === chosen) opt.classList.add('wrong');
+  });
+
+  fb.style.display = 'block';
+  fb.className = 'quiz-feedback ' + (chosen === qa.correct ? 'correct' : 'wrong');
+  fb.innerHTML = qa.feedbacks[chosen];
+}
+
+// ═══════════════════════════════════════════════════════
+//  ENTER KEY SUPPORT
+// ═══════════════════════════════════════════════════════
+document.getElementById('addInput').addEventListener('keydown', e => { if (e.key==='Enter') addItem(); });
+document.getElementById('checkInput').addEventListener('keydown', e => { if (e.key==='Enter') checkItem(); });
+
+// ═══════════════════════════════════════════════════════
+//  SCROLL REVEAL
+// ═══════════════════════════════════════════════════════
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.08 });
+
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+// ═══════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════
+renderBitArray();
+renderStats();
+</script>
+</body>
+</html>

@@ -95,6 +95,14 @@
       </div>
       <span class="nav-badge">8</span>
     </button>
+    <button class="nav-item" data-module="bloom" id="nav-bloom">
+      <span class="nav-icon">🌸</span>
+      <div class="nav-content">
+        <span class="nav-title">Bloom Filter</span>
+        <span class="nav-cmd">SETBIT · GETBIT · BITCOUNT</span>
+      </div>
+      <span class="nav-badge">9</span>
+    </button>
   </nav>
 
   <div class="sidebar-footer">
@@ -126,7 +134,7 @@
   <!-- ── Module 1: STRINGS ── -->
   <section class="module" id="module-strings">
     <div class="module-header">
-      <div class="module-badge">Module 1 of 8</div>
+      <div class="module-badge">Module 1 of 9</div>
       <h1>🔑 Strings &amp; Keys — The Foundation of Redis</h1>
       <p class="module-desc">Redis is, at its core, an in-memory <strong>key-value store</strong>. Every value lives under a <em>unique key</em>. The simplest (and most common) value type is a <strong>String</strong>.</p>
     </div>
@@ -216,7 +224,7 @@
   <!-- ── Module 2: CACHE ── -->
   <section class="module hidden" id="module-cache">
     <div class="module-header">
-      <div class="module-badge">Module 2 of 8</div>
+      <div class="module-badge">Module 2 of 9</div>
       <h1>⚡ Caching — The Cache-Aside Pattern</h1>
       <p class="module-desc">Caching is Redis's most famous use-case. Instead of hitting a slow database or external API every time, store the result in Redis for subsequent requests — serving data in <strong>microseconds</strong> instead of seconds.</p>
     </div>
@@ -286,7 +294,7 @@
   <!-- ── Module 3: LISTS ── -->
   <section class="module hidden" id="module-lists">
     <div class="module-header">
-      <div class="module-badge">Module 3 of 8</div>
+      <div class="module-badge">Module 3 of 9</div>
       <h1>📋 Lists — Queues, Stacks &amp; Feeds</h1>
       <p class="module-desc">Redis Lists are <strong>ordered linked lists</strong> of strings. Add to either end in O(1). Perfect for activity feeds (newest first), message queues (FIFO), and task processing.</p>
     </div>
@@ -353,7 +361,7 @@
   <!-- ── Module 4: HASHES ── -->
   <section class="module hidden" id="module-hashes">
     <div class="module-header">
-      <div class="module-badge">Module 4 of 8</div>
+      <div class="module-badge">Module 4 of 9</div>
       <h1>🗂️ Hashes — Objects in Redis</h1>
       <p class="module-desc">A Hash stores a <strong>collection of field-value pairs</strong> under one key — like a JavaScript object or a database row. Store user profiles, product data, or any structured data efficiently.</p>
     </div>
@@ -421,7 +429,7 @@
   <!-- ── Module 5: SETS ── -->
   <section class="module hidden" id="module-sets">
     <div class="module-header">
-      <div class="module-badge">Module 5 of 8</div>
+      <div class="module-badge">Module 5 of 9</div>
       <h1>🔵 Sets — Unique Collections &amp; Set Math</h1>
       <p class="module-desc">Sets store <strong>unique, unordered</strong> strings. Redis can perform <strong>SINTER</strong> (intersection), <strong>SUNION</strong> (union), and <strong>SDIFF</strong> (difference) on the server — making complex social graph queries trivial!</p>
     </div>
@@ -481,7 +489,7 @@
   <!-- ── Module 6: SORTED SETS ── -->
   <section class="module hidden" id="module-sorted">
     <div class="module-header">
-      <div class="module-badge">Module 6 of 8</div>
+      <div class="module-badge">Module 6 of 9</div>
       <h1>🏆 Sorted Sets — Auto-Ranked Leaderboard</h1>
       <p class="module-desc">Sorted Sets combine a Hash and a Set: each member has a <strong>score</strong> (float) and members are <strong>always kept sorted</strong> by score. Insertions, lookups, and range queries are all O(log N).</p>
     </div>
@@ -527,7 +535,7 @@
   <!-- ── Module 7: PUB/SUB ── -->
   <section class="module hidden" id="module-pubsub">
     <div class="module-header">
-      <div class="module-badge">Module 7 of 8</div>
+      <div class="module-badge">Module 7 of 9</div>
       <h1>📡 Pub/Sub — Real-Time Messaging</h1>
       <p class="module-desc">Pub/Sub is a <strong>fire-and-forget messaging pattern</strong>. Publishers send messages to channels without knowing who listens. Subscribers receive messages in real-time. Messages are NOT stored — it's purely real-time.</p>
     </div>
@@ -645,7 +653,7 @@
   <!-- ── Module 8: RATE LIMIT ── -->
   <section class="module hidden" id="module-ratelimit">
     <div class="module-header">
-      <div class="module-badge">Module 8 of 8</div>
+      <div class="module-badge">Module 8 of 9</div>
       <h1>🚦 Rate Limiting — INCR + EXPIRE Pattern</h1>
       <p class="module-desc">One of the most elegant Redis patterns: use <strong>atomic INCR</strong> to count requests and <strong>EXPIRE</strong> to define the time window. No race conditions, no locks needed — Redis handles atomicity natively.</p>
     </div>
@@ -701,6 +709,191 @@ ELSE:
       </div>
       <pre id="resp-ratelimit-body">Send API requests above to see rate limiting in action...</pre>
       <div class="explanation-box" id="resp-ratelimit-explain"></div>
+    </div>
+  </section>
+
+  <!-- ── Module 9: BLOOM FILTER ── -->
+  <section class="module hidden" id="module-bloom">
+    <div class="module-header">
+      <div class="module-badge">Module 9 of 9</div>
+      <h1>🌸 Bloom Filter — Probabilistic Membership Testing</h1>
+      <p class="module-desc">A <strong>Bloom Filter</strong> is a space-efficient probabilistic data structure that tells you whether an item is <em>definitely NOT</em> in a set, or <em>possibly</em> in it. Redis makes it trivial to implement with <code style="color:var(--redis-red)">SETBIT</code> and <code style="color:var(--redis-red)">GETBIT</code> — storing 2048 bits in just <strong>256 bytes</strong>.</p>
+    </div>
+
+    <div class="concept-box">
+      <h3>💡 Core Concepts</h3>
+      <div class="concept-grid">
+        <div class="concept-card">
+          <code>SETBIT key offset 1</code>
+          <p>Set a single bit at a position. Used when <strong>registering</strong> an item into the filter.</p>
+        </div>
+        <div class="concept-card">
+          <code>GETBIT key offset</code>
+          <p>Read a single bit. Used when <strong>checking</strong> membership. Returns 0 or 1.</p>
+        </div>
+        <div class="concept-card">
+          <code>BITCOUNT key</code>
+          <p>Count total bits set to 1. Used to compute the <strong>fill ratio</strong> and estimate false positive rate.</p>
+        </div>
+        <div class="concept-card">
+          <code>Pipeline (k × GETBIT)</code>
+          <p>All k hash positions are read in a <strong>single pipeline</strong> for O(k) performance with one round-trip.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- How it works flow -->
+    <div class="concept-box" style="margin-top:16px;">
+      <h3>⚙️ How a Bloom Filter Works</h3>
+      <div class="flow-diagram">
+        <div class="flow-step">
+          <div class="flow-num">1</div>
+          <div>Hash the item with <strong>k</strong> different functions</div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step">
+          <div class="flow-num">2</div>
+          <div>Each hash gives a <strong>bit position</strong> [0, m)</div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step hit">
+          <div class="flow-num">ADD</div>
+          <div>🟣 SETBIT all k positions to 1</div>
+        </div>
+        <div class="flow-arrow">|</div>
+        <div class="flow-step miss">
+          <div class="flow-num">CHECK</div>
+          <div>🔍 GETBIT all k positions — any 0 = definitely absent</div>
+        </div>
+      </div>
+      <p style="text-align:center;color:var(--text-muted);font-size:0.85rem;margin-top:10px;">⚠️ All bits = 1 only means <em>possibly present</em> — hash collisions can cause <strong>false positives</strong>. There are <strong>zero false negatives</strong>.</p>
+    </div>
+
+    <!-- Interactive demo -->
+    <div class="lab-grid">
+      <!-- Username Availability Checker -->
+      <div class="lab-card" id="lab-bloom-check" style="grid-column: 1 / -1;">
+        <h3>👤 Username Availability Checker <span class="badge-warn" style="background:rgba(124,58,237,.12);color:#a78bfa;border:1px solid rgba(124,58,237,.3);">Live Redis · SETBIT / GETBIT</span></h3>
+        <p class="card-desc">Check if a username is taken using a real Bloom Filter stored in Upstash Redis. The filter uses <strong>m = 2048 bits</strong> and <strong>k = 4 hash functions</strong>.</p>
+
+        <!-- Bit array mini-visualiser -->
+        <div style="margin:16px 0 10px;">
+          <div style="font-size:0.75rem;color:var(--text-dim);margin-bottom:8px;">Bit Array (2048 bits — showing first 256) <span id="bloomBitStats" style="color:var(--accent-emerald);margin-left:8px;"></span></div>
+          <div id="bloomBitMini" style="display:flex;flex-wrap:wrap;gap:2px;"></div>
+          <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;">
+            <div style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:var(--text-dim);"><div style="width:10px;height:10px;border-radius:2px;background:#1a1a30;border:1px solid #333;"></div> 0 (empty)</div>
+            <div style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:var(--text-dim);"><div style="width:10px;height:10px;border-radius:2px;background:rgba(124,58,237,.5);"></div> 1 (set)</div>
+            <div style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:var(--text-dim);"><div style="width:10px;height:10px;border-radius:2px;background:rgba(6,182,212,.6);"></div> Query hit</div>
+            <div style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:var(--text-dim);"><div style="width:10px;height:10px;border-radius:2px;background:rgba(239,68,68,.6);"></div> Query miss</div>
+          </div>
+        </div>
+
+        <!-- Check row -->
+        <div class="form-row" style="margin-top:8px;">
+          <div style="position:relative;flex:1;min-width:180px;">
+            <span style="position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--text-dim);font-family:var(--font-mono);pointer-events:none;">@</span>
+            <input type="text" id="bloomUsername" placeholder="username to check…" maxlength="30" style="padding-left:30px;" autocomplete="off" spellcheck="false" />
+          </div>
+          <button class="btn btn-secondary" id="bloomCheckBtn" onclick="bloomCheck()">🔍 Check</button>
+          <button class="btn btn-primary" id="bloomRegisterBtn" onclick="bloomRegister()" style="display:none;">✨ Register</button>
+        </div>
+
+        <!-- Result -->
+        <div id="bloomResult" style="display:none;margin-top:12px;padding:14px 16px;border-radius:10px;font-size:0.88rem;line-height:1.6;"></div>
+
+        <!-- Stats row -->
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:14px;">
+          <div style="background:var(--bg-input);border:1px solid var(--border-subtle);border-radius:8px;padding:10px 16px;text-align:center;min-width:90px;">
+            <div style="font-size:1.3rem;font-weight:800;font-family:var(--font-mono);color:var(--accent-purple,#a78bfa);" id="bfStatBits">—</div>
+            <div style="font-size:0.68rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;">Bits Set</div>
+          </div>
+          <div style="background:var(--bg-input);border:1px solid var(--border-subtle);border-radius:8px;padding:10px 16px;text-align:center;min-width:90px;">
+            <div style="font-size:1.3rem;font-weight:800;font-family:var(--font-mono);color:var(--accent-purple,#a78bfa);" id="bfStatFill">—</div>
+            <div style="font-size:0.68rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;">Fill Ratio</div>
+          </div>
+          <div style="background:var(--bg-input);border:1px solid var(--border-subtle);border-radius:8px;padding:10px 16px;text-align:center;min-width:90px;">
+            <div style="font-size:1.3rem;font-weight:800;font-family:var(--font-mono);color:var(--accent-purple,#a78bfa);" id="bfStatReg">—</div>
+            <div style="font-size:0.68rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;">Registered</div>
+          </div>
+          <div style="background:var(--bg-input);border:1px solid var(--border-subtle);border-radius:8px;padding:10px 16px;text-align:center;min-width:90px;">
+            <div style="font-size:1.3rem;font-weight:800;font-family:var(--font-mono);color:#fcd34d;" id="bfStatFP">—</div>
+            <div style="font-size:0.68rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;">Est. FP Rate</div>
+          </div>
+          <div style="flex:1;display:flex;align-items:center;">
+            <button class="btn btn-danger btn-sm" onclick="bloomReset()">🔄 Reset Filter</button>
+          </div>
+        </div>
+
+        <!-- Recently registered -->
+        <div style="margin-top:14px;">
+          <div style="font-size:0.75rem;color:var(--text-dim);margin-bottom:6px;">Recently registered:</div>
+          <div id="bloomTakenList" style="display:flex;flex-wrap:wrap;gap:6px;"><span style="font-size:0.78rem;color:var(--text-dim);">None yet.</span></div>
+        </div>
+
+        <!-- Full demo link -->
+        <div style="margin-top:16px;">
+          <a href="/username-check.html" target="_blank" style="display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:10px;background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.25);color:#a78bfa;text-decoration:none;font-size:0.85rem;font-weight:600;transition:all .2s;" onmouseover="this.style.background='rgba(124,58,237,.2)'" onmouseout="this.style.background='rgba(124,58,237,.1)'">🚀 Open Full Bloom Filter Demo ↗</a>
+        </div>
+      </div>
+
+      <!-- False Positive Explainer -->
+      <div class="lab-card" id="lab-bloom-fp">
+        <h3>⚠️ False Positives vs False Negatives</h3>
+        <p class="card-desc">The most critical property to understand about Bloom Filters.</p>
+        <div style="margin-top:14px;display:flex;flex-direction:column;gap:10px;">
+          <div style="padding:12px 16px;border-radius:10px;background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.2);">
+            <div style="font-size:0.75rem;font-weight:700;color:var(--accent-emerald);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">✅ Zero False Negatives</div>
+            <p style="font-size:0.82rem;color:var(--text-muted);line-height:1.6;margin:0;">If <strong>any bit is 0</strong>, the item was <em>never</em> added. This is a <strong>guaranteed</strong> true negative — no exceptions possible.</p>
+          </div>
+          <div style="padding:12px 16px;border-radius:10px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);">
+            <div style="font-size:0.75rem;font-weight:700;color:var(--accent-yellow,#fcd34d);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">⚠️ Possible False Positives</div>
+            <p style="font-size:0.82rem;color:var(--text-muted);line-height:1.6;margin:0;">If <strong>all k bits are 1</strong>, the item is <em>possibly</em> present — but other items' hashes may coincidentally occupy those positions.</p>
+          </div>
+          <div style="padding:12px 16px;border-radius:10px;background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.2);">
+            <div style="font-size:0.75rem;font-weight:700;color:#ef4444;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">🚫 No Deletion Support</div>
+            <p style="font-size:0.82rem;color:var(--text-muted);line-height:1.6;margin:0;">You can't flip bits back to 0 — that would corrupt other items. Use a <strong>Counting Bloom Filter</strong> if deletion is required.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- FP Rate calculator -->
+      <div class="lab-card" id="lab-bloom-calc">
+        <h3>📐 FP Rate Formula</h3>
+        <p class="card-desc">Estimate the false positive rate for any filter configuration.</p>
+        <div style="background:var(--bg-input);padding:14px;border-radius:8px;border:1px solid var(--border-subtle);margin:14px 0;">
+          <pre style="font-family:var(--font-mono);font-size:0.78rem;color:var(--text-code);margin:0;line-height:1.7;">FP Rate = (1 − e<sup style="font-size:.7em;">−kn/m</sup>)<sup style="font-size:.7em;">k</sup>
+
+m = bit array size (2048)
+k = hash functions   (4)
+n = items inserted</pre>
+        </div>
+        <div class="form-row" style="flex-direction:column;gap:10px;">
+          <div style="display:flex;gap:10px;align-items:center;">
+            <label style="font-size:0.8rem;color:var(--text-muted);width:100px;">n (items):</label>
+            <input type="number" id="calcN" value="10" min="1" max="2048" style="flex:1;" oninput="updateFPCalc()" />
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;">
+            <label style="font-size:0.8rem;color:var(--text-muted);width:100px;">m (bits):</label>
+            <input type="number" id="calcM" value="2048" min="64" style="flex:1;" oninput="updateFPCalc()" />
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;">
+            <label style="font-size:0.8rem;color:var(--text-muted);width:100px;">k (hashes):</label>
+            <input type="number" id="calcK" value="4" min="1" max="10" style="flex:1;" oninput="updateFPCalc()" />
+          </div>
+        </div>
+        <div id="fpCalcResult" style="margin-top:14px;padding:12px 16px;border-radius:10px;background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.2);font-family:var(--font-mono);font-size:0.9rem;">
+          FP Rate ≈ <strong id="fpCalcVal" style="color:#a78bfa;">—</strong>
+        </div>
+      </div>
+    </div>
+
+    <div class="response-panel" id="resp-bloom">
+      <div class="resp-header">
+        <span class="resp-label">Redis Console Response</span>
+        <code id="resp-bloom-cmd" class="cmd-display"></code>
+      </div>
+      <pre id="resp-bloom-body">Check or register a username above to see live Redis commands...</pre>
+      <div class="explanation-box" id="resp-bloom-explain"></div>
     </div>
   </section>
 
@@ -775,6 +968,14 @@ ELSE:
         <code>UNSUBSCRIBE ch</code>
         <code>PUBLISH ch message</code>
         <code>PSUBSCRIBE ch*</code>
+      </div>
+      <div class="cs-section">
+        <h4>🌸 Bloom Filter (Bits)</h4>
+        <code>SETBIT key offset 1</code>
+        <code>GETBIT key offset</code>
+        <code>BITCOUNT key</code>
+        <code>BITPOS key bit</code>
+        <code>BITOP AND/OR/XOR</code>
       </div>
     </div>
   </div>

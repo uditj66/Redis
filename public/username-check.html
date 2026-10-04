@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Username Availability — Bloom Filter Demo</title>
+  <meta name="description" content="Check username availability using a Redis-backed Bloom Filter. Zero false negatives, blazing fast O(k) lookups." />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg:       #070711;
+      --s1:       #0f0f1e;
+      --s2:       #16162a;
+      --s3:       #1e1e36;
+      --border:   #252540;
+      --accent:   #7c3aed;
+      --cyan:     #06b6d4;
+      --amber:    #f59e0b;
+      --green:    #10b981;
+      --red:      #ef4444;
+      --text:     #e2e8f0;
+      --muted:    #64748b;
+      --bit-off:  #1a1a30;
+    }
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── BG ── */
+    .bg-grid {
+      position:fixed; inset:0; z-index:0; pointer-events:none;
+      background-image:
+        linear-gradient(rgba(124,58,237,.03) 1px, transparent 1px),
+        linear-gradient(90deg,rgba(124,58,237,.03) 1px, transparent 1px);
+      background-size: 48px 48px;
+    }
+    .orb {
+      position:fixed; border-radius:50%; filter:blur(130px);
+      pointer-events:none; z-index:0;
+    }
+    .orb1 { width:600px; height:600px; background:rgba(124,58,237,.1); top:-200px; left:-200px; animation: fl 14s ease-in-out infinite; }
+    .orb2 { width:500px; height:500px; background:rgba(6,182,212,.07); bottom:-150px; right:-150px; animation: fl 14s ease-in-out 7s infinite; }
+    @keyframes fl { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-28px)} }
+
+    /* ── NAV ── */
+    nav {
+      position:sticky; top:0; z-index:100;
+      background:rgba(7,7,17,.85); backdrop-filter:blur(20px);
+      border-bottom:1px solid var(--border);
+      padding:14px 32px; display:flex; align-items:center; gap:20px;
+    }
+    .nav-logo {
+      font-weight:900; font-size:1rem; margin-right:auto;
+      background: linear-gradient(135deg,#a78bfa,#67e8f9);
+      -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+    }
+    nav a { color:var(--muted); text-decoration:none; font-size:.85rem; transition:color .2s; }
+    nav a:hover { color:var(--text); }
+    nav a.active { color:#a78bfa; font-weight:600; }
+
+    /* ── LAYOUT ── */
+    .wrap { position:relative; z-index:1; max-width:960px; margin:0 auto; padding:0 24px 100px; }
+
+    /* ── HEADER ── */
+    header { text-align:center; padding:72px 24px 48px; position:relative; z-index:1; }
+    .badge {
+      display:inline-flex; align-items:center; gap:8px;
+      background:rgba(124,58,237,.12); border:1px solid rgba(124,58,237,.25);
+      border-radius:999px; padding:6px 18px; font-size:13px; color:#a78bfa;
+      margin-bottom:24px; animation:fdn .5s ease both;
+    }
+    .badge-dot { width:7px; height:7px; border-radius:50%; background:#a78bfa; animation:blk 1.5s ease infinite; }
+    @keyframes blk { 0%,100%{opacity:1} 50%{opacity:.3} }
+    header h1 {
+      font-size: clamp(2.4rem,6vw,4.2rem); font-weight:900; line-height:1.1;
+      background: linear-gradient(135deg,#a78bfa 0%,#38bdf8 55%,#f59e0b 100%);
+      -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+      animation: fdn .6s ease .1s both;
+    }
+    header p {
+      color:var(--muted); font-size:1.1rem; margin-top:16px; line-height:1.75;
+      max-width:560px; margin-left:auto; margin-right:auto;
+      animation: fdn .6s ease .2s both;
+    }
+    @keyframes fdn { from{opacity:0;transform:translateY(-14px)} to{opacity:1;transform:none} }
+
+    /* ── CHECKER CARD ── */
+    .card {
+      background:var(--s1); border:1px solid var(--border);
+      border-radius:24px; padding:40px; margin-top:40px;
+      position:relative; overflow:hidden;
+    }
+    .card::before {
+      content:''; position:absolute; inset:0; pointer-events:none;
+      background:linear-gradient(135deg,rgba(124,58,237,.05),transparent 60%);
+    }
+    .card-label {
+      font-size:.75rem; font-weight:700; letter-spacing:.12em;
+      color:var(--muted); text-transform:uppercase; margin-bottom:14px;
+    }
+
+    /* ── INPUT ── */
+    .inp-row { display:flex; gap:12px; flex-wrap:wrap; }
+    .inp-wrap { flex:1; min-width:220px; position:relative; }
+    .inp-prefix {
+      position:absolute; left:18px; top:50%; transform:translateY(-50%);
+      color:var(--muted); font-family:'JetBrains Mono',monospace;
+      font-size:1.1rem; pointer-events:none;
+    }
+    #usernameInput {
+      width:100%; padding:18px 20px 18px 44px;
+      background:var(--s2); border:2px solid var(--border);
+      border-radius:14px; color:var(--text);
+      font-size:1.1rem; font-family:'JetBrains Mono',monospace;
+      outline:none; transition:all .25s;
+    }
+    #usernameInput:focus {
+      border-color:var(--accent);
+      box-shadow:0 0 0 4px rgba(124,58,237,.15);
+      background:var(--s3);
+    }
+    #usernameInput::placeholder { color:var(--muted); }
+
+    .btn {
+      padding:18px 28px; border-radius:14px; border:none; cursor:pointer;
+      font-size:.95rem; font-weight:700; font-family:'Inter',sans-serif;
+      transition:all .25s; white-space:nowrap;
+    }
+    .btn-check {
+      background:linear-gradient(135deg,var(--accent),#6d28d9);
+      color:#fff; box-shadow:0 4px 24px rgba(124,58,237,.4);
+      min-width:150px;
+    }
+    .btn-check:hover:not(:disabled) { transform:translateY(-2px); box-shadow:0 8px 36px rgba(124,58,237,.55); }
+    .btn-check:active { transform:scale(.97); }
+    .btn-check:disabled { opacity:.6; cursor:not-allowed; }
+
+    .btn-register {
+      background:linear-gradient(135deg,#059669,#10b981);
+      color:#fff; box-shadow:0 4px 24px rgba(16,185,129,.35);
+    }
+    .btn-register:hover:not(:disabled) { transform:translateY(-2px); box-shadow:0 8px 36px rgba(16,185,129,.5); }
+    .btn-register:disabled { opacity:.6; cursor:not-allowed; }
+
+    .btn-danger {
+      background:rgba(239,68,68,.1); border:1.5px solid rgba(239,68,68,.3);
+      color:#fca5a5; padding:10px 20px; font-size:.85rem;
+    }
+    .btn-danger:hover { background:rgba(239,68,68,.2); }
+
+    /* ── RESULT BANNER ── */
+    #resultBanner {
+      margin-top:24px; border-radius:14px; padding:22px 26px;
+      display:none; position:relative;
+    }
+    #resultBanner.show { display:block; animation:slu .35s ease; }
+    #resultBanner.available { background:rgba(16,185,129,.07); border:1.5px solid rgba(16,185,129,.3); }
+    #resultBanner.taken     { background:rgba(239,68,68,.07);  border:1.5px solid rgba(239,68,68,.3); }
+    #resultBanner.maybe     { background:rgba(245,158,11,.07); border:1.5px solid rgba(245,158,11,.3); }
+    #resultBanner.registered{ background:rgba(124,58,237,.07); border:1.5px solid rgba(124,58,237,.3); }
+    @keyframes slu { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:none} }
+
+    .res-emoji  { font-size:2.2rem; display:block; margin-bottom:10px; }
+    .res-title  { font-size:1.25rem; font-weight:800; margin-bottom:6px; }
+    .available .res-title { color:#34d399; }
+    .taken .res-title     { color:#f87171; }
+    .maybe .res-title     { color:#fcd34d; }
+    .registered .res-title{ color:#a78bfa; }
+    .res-msg { color:var(--muted); font-size:.9rem; line-height:1.65; }
+
+    .bit-chips { display:flex; gap:8px; flex-wrap:wrap; margin-top:14px; align-items:center; }
+    .bit-chip-lbl { font-size:.75rem; color:var(--muted); }
+    .chip {
+      font-family:'JetBrains Mono',monospace; font-size:.78rem;
+      padding:4px 10px; border-radius:8px; font-weight:700;
+    }
+    .chip.on   { background:rgba(124,58,237,.2); border:1.5px solid var(--accent); color:#a78bfa; }
+    .chip.off  { background:rgba(239,68,68,.12); border:1.5px solid rgba(239,68,68,.4); color:#f87171; }
+    .chip.hit  { background:rgba(16,185,129,.2); border:1.5px solid var(--green); color:#34d399; }
+
+    /* ── REGISTER ROW ── */
+    #registerRow { margin-top:18px; display:none; align-items:center; gap:14px; flex-wrap:wrap; }
+    #registerRow.show { display:flex; }
+    .reg-hint { font-size:.88rem; color:var(--muted); flex:1; }
+
+    /* ── BIT GRID ── */
+    .panel {
+      background:var(--s1); border:1px solid var(--border);
+      border-radius:24px; padding:32px; margin-top:28px;
+    }
+    .sec-title {
+      font-size:1.25rem; font-weight:800; margin-bottom:6px;
+      display:flex; align-items:center; gap:10px;
+    }
+    .sec-badge {
+      font-size:.7rem; padding:3px 10px; border-radius:999px;
+      background:rgba(124,58,237,.15); color:#a78bfa; font-weight:700;
+    }
+    .sec-sub { font-size:.88rem; color:var(--muted); margin-bottom:20px; line-height:1.65; }
+    .code-inline {
+      font-family:'JetBrains Mono',monospace; font-size:.8rem;
+      background:rgba(124,58,237,.1); border:1px solid rgba(124,58,237,.2);
+      border-radius:6px; padding:1px 6px; color:#a78bfa;
+    }
+
+    .bit-grid-wrap { overflow-x:auto; padding:8px 0 12px; }
+    .bit-grid { display:flex; flex-wrap:wrap; gap:3px; min-width:480px; }
+    .b {
+      width:20px; height:20px; border-radius:4px;
+      background:var(--bit-off); border:1px solid rgba(255,255,255,.04);
+      transition:all .4s; cursor:default;
+    }
+    .b.set       { background:rgba(124,58,237,.35); border-color:rgba(124,58,237,.55); }
+    .b.adding    { background:rgba(6,182,212,.45); border-color:rgba(6,182,212,.7); box-shadow:0 0 10px rgba(6,182,212,.5); }
+    .b.hit-pos   { background:rgba(16,185,129,.45); border-color:rgba(16,185,129,.7); box-shadow:0 0 10px rgba(16,185,129,.5); }
+    .b.miss-pos  { background:rgba(239,68,68,.4); border-color:rgba(239,68,68,.65); box-shadow:0 0 10px rgba(239,68,68,.5); }
+
+    .legend { display:flex; gap:18px; flex-wrap:wrap; margin-top:12px; }
+    .leg { display:flex; align-items:center; gap:7px; font-size:.78rem; color:var(--muted); }
+    .ld  { width:13px; height:13px; border-radius:3px; }
+    .ld-off  { background:var(--bit-off); border:1px solid rgba(255,255,255,.08); }
+    .ld-set  { background:rgba(124,58,237,.35); border:1px solid rgba(124,58,237,.55); }
+    .ld-add  { background:rgba(6,182,212,.45);  border:1px solid rgba(6,182,212,.7); }
+    .ld-hit  { background:rgba(16,185,129,.45); border:1px solid rgba(16,185,129,.7); }
+    .ld-miss { background:rgba(239,68,68,.4);   border:1px solid rgba(239,68,68,.65); }
+
+    /* ── STATS ── */
+    .stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:12px; }
+    .stat {
+      background:var(--s2); border:1px solid var(--border);
+      border-radius:14px; padding:18px; text-align:center;
+      transition:border-color .3s;
+    }
+    .stat:hover { border-color:rgba(124,58,237,.4); }
+    .stat-val {
+      font-size:1.9rem; font-weight:900; font-family:'JetBrains Mono',monospace;
+      background:linear-gradient(135deg,#a78bfa,#67e8f9);
+      -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+    }
+    .stat-lbl { font-size:.7rem; color:var(--muted); margin-top:4px; text-transform:uppercase; letter-spacing:.08em; }
+    .fill-track { height:6px; background:var(--border); border-radius:99px; margin-top:16px; overflow:hidden; }
+    .fill-inner { height:100%; background:linear-gradient(90deg,var(--accent),var(--cyan)); border-radius:99px; width:0%; transition:width .6s ease; }
+
+    /* ── TAKEN LIST ── */
+    .taken-list { display:flex; flex-wrap:wrap; gap:8px; min-height:36px; }
+    .taken-tag {
+      background:rgba(239,68,68,.08); border:1px solid rgba(239,68,68,.2);
+      border-radius:999px; padding:4px 14px; font-size:.8rem;
+      color:#f87171; font-family:'JetBrains Mono',monospace;
+      animation:fdi .3s ease;
+    }
+    .empty-hint { font-size:.85rem; color:var(--muted); }
+    @keyframes fdi { from{opacity:0;transform:scale(.94)} to{opacity:1;transform:scale(1)} }
+
+    /* ── HOW IT WORKS ── */
+    .steps { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:14px; }
+    .step { background:var(--s2); border:1px solid var(--border); border-radius:16px; padding:22px; text-align:center; }
+    .step-icon { font-size:2rem; margin-bottom:12px; }
+    .step h4 { font-size:.9rem; font-weight:700; margin-bottom:8px; }
+    .step p  { font-size:.8rem; color:var(--muted); line-height:1.65; }
+
+    .explainer {
+      background:var(--s2); border:1px solid var(--border);
+      border-radius:16px; padding:24px; margin-top:14px;
+    }
+    .explainer-title { font-size:.95rem; font-weight:700; color:#a78bfa; margin-bottom:12px; }
+    .explainer p { font-size:.85rem; color:var(--muted); line-height:1.7; margin-bottom:8px; }
+    .explainer p:last-child { margin-bottom:0; }
+
+    /* ── SPINNER ── */
+    .sp {
+      width:17px; height:17px; border:2px solid rgba(255,255,255,.2);
+      border-top-color:#fff; border-radius:50%;
+      animation:spin .65s linear infinite; display:inline-block;
+      vertical-align:middle; margin-right:8px;
+    }
+    @keyframes spin { to{transform:rotate(360deg)} }
+
+    /* ── TOAST ── */
+    #toast {
+      position:fixed; bottom:28px; right:28px; z-index:9999;
+      background:var(--s2); border:1px solid var(--border);
+      border-radius:14px; padding:14px 20px; font-size:.9rem;
+      box-shadow:0 20px 60px rgba(0,0,0,.6);
+      transform:translateY(80px); opacity:0;
+      transition:all .35s cubic-bezier(.34,1.56,.64,1);
+      max-width:320px; line-height:1.5;
+    }
+    #toast.show { transform:translateY(0); opacity:1; }
+
+    /* ── DIVIDER ── */
+    .divider { height:1px; background:var(--border); margin:40px 0; }
+
+    /* ── RESPONSIVE ── */
+    @media(max-width:640px){
+      .card,.panel { padding:22px 18px; }
+      header { padding:52px 16px 32px; }
+      nav { padding:12px 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="bg-grid"></div>
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+
+<!-- NAV -->
+<nav>
+  <span class="nav-logo">🌸 BloomCheck</span>
+  <a href="/index.html">← Home</a>
+  <a href="/bloom-filter.html">Lab</a>
+  <a href="/username-check.html" class="active">Username Checker</a>
+</nav>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- HEADER -->
+<header>
+  <div class="badge"><span class="badge-dot"></span> Live · Upstash Redis Backend</div>
+  <h1>Username Availability<br/>with Bloom Filters</h1>
+  <p>A <strong>real</strong> Bloom Filter backed by <strong>Upstash Redis</strong>.
+     Check if usernames are taken in <strong>O(k)</strong> time — zero false negatives guaranteed.</p>
+</header>
+
+<div class="wrap">
+
+  <!-- ══ CHECKER CARD ══ -->
+  <div class="card" id="checkerCard">
+    <div class="card-label">Check Username Availability</div>
+
+    <div class="inp-row">
+      <div class="inp-wrap">
+        <span class="inp-prefix">@</span>
+        <input id="usernameInput" type="text"
+          placeholder="cooldev, alice42, jsmith…"
+          maxlength="30" autocomplete="off" spellcheck="false" />
+      </div>
+      <button class="btn btn-check" id="checkBtn" onclick="checkUsername()">
+        🔍 Check
+      </button>
+    </div>
+
+    <!-- Result Banner -->
+    <div id="resultBanner">
+      <span class="res-emoji" id="resEmoji"></span>
+      <div class="res-title" id="resTitle"></div>
+      <div class="res-msg"   id="resMsg"></div>
+      <div class="bit-chips" id="bitChips"></div>
+    </div>
+
+    <!-- Register row (shown only when available) -->
+    <div id="registerRow">
+      <span class="reg-hint">This username is free — want to claim it?</span>
+      <button class="btn btn-register" id="registerBtn" onclick="registerUsername()">
+        ✨ Register Username
+      </button>
+    </div>
+  </div>
+
+  <!-- ══ BIT ARRAY ══ -->
+  <div class="panel">
+    <div class="sec-title">
+      Redis Bit Array
+      <span class="sec-badge">m = 2048 bits · k = 4 hashes</span>
+    </div>
+    <p class="sec-sub">
+      Each cell is a single bit stored in Redis via
+      <span class="code-inline">SETBIT</span> / <span class="code-inline">GETBIT</span>.
+      Purple = set by a registered username.
+      Cyan = positions being written now.
+      Green = query hit (bit is 1).
+      Red = query miss (bit is 0 → username definitely free!).
+    </p>
+    <div class="bit-grid-wrap">
+      <div class="bit-grid" id="bitGrid"></div>
+    </div>
+    <div class="legend">
+      <div class="leg"><div class="ld ld-off"></div> 0 — empty</div>
+      <div class="leg"><div class="ld ld-set"></div> 1 — set by user</div>
+      <div class="leg"><div class="ld ld-add"></div> Being written</div>
+      <div class="leg"><div class="ld ld-hit"></div> Query hit</div>
+      <div class="leg"><div class="ld ld-miss"></div> Query miss (free!)</div>
+    </div>
+  </div>
+
+  <!-- ══ STATS ══ -->
+  <div class="panel">
+    <div class="sec-title">Filter Stats</div>
+    <div class="stats-grid" style="margin-top:16px;">
+      <div class="stat"><div class="stat-val" id="sBitsSet">—</div><div class="stat-lbl">Bits Set</div></div>
+      <div class="stat"><div class="stat-val" id="sFill">—</div><div class="stat-lbl">Fill Ratio</div></div>
+      <div class="stat"><div class="stat-val" id="sReg">—</div><div class="stat-lbl">Registered</div></div>
+      <div class="stat"><div class="stat-val" id="sFP">—</div><div class="stat-lbl">Est. FP Rate</div></div>
+    </div>
+    <div class="fill-track">
+      <div class="fill-inner" id="fillBar"></div>
+    </div>
+
+    <div style="margin-top:28px;">
+      <div style="font-size:.85rem; color:var(--muted); margin-bottom:12px; font-weight:600;">
+        Recently Registered Usernames
+      </div>
+      <div class="taken-list" id="takenList">
+        <span class="empty-hint">No usernames registered yet.</span>
+      </div>
+    </div>
+
+    <div style="margin-top:22px; display:flex; justify-content:flex-end;">
+      <button class="btn btn-danger" onclick="resetAll()">🔄 Reset Filter</button>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ══ HOW IT WORKS ══ -->
+  <div style="position:relative;z-index:1;">
+    <div class="sec-title">How It Works</div>
+    <p class="sec-sub">Your browser talks to an <strong>Express + Upstash Redis</strong> backend. Here's the flow.</p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-icon">🗄️</div>
+        <h4>Bit Array in Redis</h4>
+        <p>A single Redis key holds <strong>2048 bits</strong> (256 bytes). Tiny — even with 1000 registered users.</p>
+      </div>
+      <div class="step">
+        <div class="step-icon">#️⃣</div>
+        <h4>4 Hash Functions</h4>
+        <p>Each username passes through <strong>4 djb2-variant hashes</strong>, each mapping to a position in [0, 2047].</p>
+      </div>
+      <div class="step">
+        <div class="step-icon">⬆️</div>
+        <h4>Register → SETBIT</h4>
+        <p>Redis sets <code>SETBIT bloom:usernames pos 1</code> for all 4 positions, and saves the name in a sorted set.</p>
+      </div>
+      <div class="step">
+        <div class="step-icon">🔍</div>
+        <h4>Check → GETBIT</h4>
+        <p><code>GETBIT</code> × 4 in a pipeline. Any bit = 0 → <strong>definitely free</strong>. All 1s → check confirmed set for ground truth.</p>
+      </div>
+    </div>
+    <div class="explainer">
+      <div class="explainer-title">🧠 False Positives vs False Negatives</div>
+      <p><strong>False Negative:</strong> Bloom Filters have <em>zero</em> false negatives. If any bit is 0, the username is definitively available — no exceptions.</p>
+      <p><strong>False Positive:</strong> When hash collisions cause all 4 bits to be set by <em>other</em> usernames, the filter may say "possibly taken" for a free name. This app cross-checks the Redis sorted set to tell you if it's a real collision or a false positive.</p>
+      <p>With m=2048, k=4, and n users: <strong>FP rate ≈ (1 − e<sup>−kn/m</sup>)<sup>k</sup></strong>. Add more usernames and watch it climb!</p>
+    </div>
+  </div>
+
+</div><!-- /wrap -->
+
+<script>
+  const BF_SIZE = 2048;
+  let localBits = new Uint8Array(BF_SIZE);
+  let lastUser = '';
+
+  /* ── BIT GRID ─────────────────────────────────── */
+  function initGrid() {
+    const g = document.getElementById('bitGrid');
+    g.innerHTML = '';
+    for (let i = 0; i < BF_SIZE; i++) {
+      const d = document.createElement('div');
+      d.className = 'b';
+      d.id = 'b' + i;
+      g.appendChild(d);
+    }
+  }
+
+  function setCell(pos, cls) {
+    const el = document.getElementById('b' + pos);
+    if (el) el.className = 'b' + (cls ? ' ' + cls : '');
+  }
+
+  function restoreCell(pos) {
+    setCell(pos, localBits[pos] ? 'set' : '');
+  }
+
+  /* ── API ──────────────────────────────────────── */
+  async function api(path, opts = {}) {
+    const r = await fetch('/api/bloom-filter' + path, {
+      headers: { 'Content-Type': 'application/json' },
+      ...opts,
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(data.error || 'HTTP ' + r.status);
+    return data;
+  }
+
+  /* ── STATS ────────────────────────────────────── */
+  async function loadStats() {
+    try {
+      applyStats(await api('/stats'));
+    } catch (e) {
+      console.warn('Stats error:', e.message);
+    }
+  }
+
+  function applyStats(s) {
+    document.getElementById('sBitsSet').textContent = s.bitsSet ?? '—';
+    document.getElementById('sFill').textContent    = s.fillRatio != null ? s.fillRatio + '%' : '—';
+    document.getElementById('sReg').textContent     = s.totalRegistered ?? '—';
+    document.getElementById('sFP').textContent      = s.fpRate != null ? s.fpRate + '%' : '—';
+    document.getElementById('fillBar').style.width  = (parseFloat(s.fillRatio) || 0) + '%';
+
+    const list = document.getElementById('takenList');
+    const names = s.recentUsernames;
+    if (names && names.length) {
+      list.innerHTML = names.map(u => `<span class="taken-tag">@${u}</span>`).join('');
+    } else {
+      list.innerHTML = '<span class="empty-hint">No usernames registered yet.</span>';
+    }
+  }
+
+  /* ── CHECK ────────────────────────────────────── */
+  async function checkUsername() {
+    const val = document.getElementById('usernameInput').value.trim();
+    if (!val) { document.getElementById('usernameInput').focus(); return; }
+
+    const btn = document.getElementById('checkBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="sp"></span>Checking…';
+
+    document.getElementById('registerRow').classList.remove('show');
+    hideBanner();
+
+    try {
+      const d = await api('/check', { method: 'POST', body: JSON.stringify({ username: val }) });
+      lastUser = val;
+
+      /* highlight bit cells */
+      if (d.positions && d.bits) {
+        d.positions.forEach(p => restoreCell(p)); // clear old highlights first
+        setTimeout(() => {
+          d.positions.forEach((p, i) => {
+            setCell(p, d.bits[i] ? 'hit-pos' : 'miss-pos');
+          });
+          setTimeout(() => d.positions.forEach(p => restoreCell(p)), 3000);
+        }, 100);
+      }
+
+      showBanner(d);
+      applyStats(d);
+
+      if (d.status === 'available') {
+        document.getElementById('registerRow').classList.add('show');
+      }
+    } catch (e) {
+      toast('❌ ' + e.message, 4000);
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '🔍 Check';
+    }
+  }
+
+  function showBanner(d) {
+    const banner = document.getElementById('resultBanner');
+    const cfg = {
+      available: { cls: 'available', emoji: '✅', title: 'Username Available!' },
+      taken:     { cls: 'taken',     emoji: '❌', title: 'Already Taken' },
+      maybe:     { cls: 'maybe',     emoji: '⚠️', title: 'Possibly Taken — Check Below' },
+    }[d.status] || {};
+
+    banner.className = 'show ' + (cfg.cls || '');
+    document.getElementById('resEmoji').textContent = cfg.emoji || '';
+    document.getElementById('resTitle').textContent = cfg.title || '';
+    document.getElementById('resMsg').textContent   = d.message || '';
+
+    const chips = document.getElementById('bitChips');
+    if (d.positions && d.bits) {
+      chips.innerHTML =
+        '<span class="bit-chip-lbl">Bit positions:</span>' +
+        d.positions.map((pos, i) => {
+          const b = d.bits[i];
+          const cls = b ? (d.status === 'available' ? 'on' : 'hit') : 'off';
+          return `<span class="chip ${cls}">[${pos}]=${b}</span>`;
+        }).join('');
+    } else {
+      chips.innerHTML = '';
+    }
+  }
+
+  function hideBanner() {
+    document.getElementById('resultBanner').className = '';
+  }
+
+  /* ── REGISTER ─────────────────────────────────── */
+  async function registerUsername() {
+    if (!lastUser) return;
+    const btn = document.getElementById('registerBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="sp"></span>Registering…';
+
+    try {
+      const d = await api('/register', { method: 'POST', body: JSON.stringify({ username: lastUser }) });
+
+      if (d.positions) {
+        d.positions.forEach(p => {
+          localBits[p] = 1;
+          setCell(p, 'adding');
+          setTimeout(() => setCell(p, 'set'), 1600);
+        });
+      }
+
+      const banner = document.getElementById('resultBanner');
+      banner.className = 'show registered';
+      document.getElementById('resEmoji').textContent = '🎉';
+      document.getElementById('resTitle').textContent = 'Registered!';
+      document.getElementById('resMsg').textContent   = d.message;
+      document.getElementById('bitChips').innerHTML   =
+        '<span class="bit-chip-lbl">Bits set at:</span>' +
+        (d.positions || []).map(p => `<span class="chip on">[${p}]=1</span>`).join('');
+
+      document.getElementById('registerRow').classList.remove('show');
+      document.getElementById('usernameInput').value = '';
+      lastUser = '';
+
+      toast('✨ @' + (d.username || '') + ' registered!');
+      await loadStats();
+    } catch (e) {
+      toast('❌ ' + e.message, 4000);
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '✨ Register Username';
+    }
+  }
+
+  /* ── RESET ────────────────────────────────────── */
+  async function resetAll() {
+    if (!confirm('Reset the Bloom Filter and clear all registered usernames from Redis?')) return;
+    try {
+      await api('/reset', { method: 'DELETE' });
+      localBits = new Uint8Array(BF_SIZE);
+      initGrid();
+      hideBanner();
+      document.getElementById('registerRow').classList.remove('show');
+      await loadStats();
+      toast('🔄 Filter reset!');
+    } catch (e) {
+      toast('❌ ' + e.message, 4000);
+    }
+  }
+
+  /* ── TOAST ────────────────────────────────────── */
+  function toast(msg, ms = 2800) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), ms);
+  }
+
+  /* ── INIT ─────────────────────────────────────── */
+  document.addEventListener('DOMContentLoaded', () => {
+    initGrid();
+    loadStats();
+    document.getElementById('usernameInput').addEventListener('keydown', e => {
+      if (e.key === 'Enter') checkUsername();
+    });
+  });
+</script>
+
+</body>
+</html>
